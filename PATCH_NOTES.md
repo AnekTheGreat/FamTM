@@ -9,6 +9,30 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — A connector points at the person it belongs to, not at the couple
+
+### Fixed
+- **A parent's line into a box that holds a couple no longer lands between the two names.** Every
+  connector used to be drawn from the middle of the parent's box to the middle of the child's box, so a
+  line belonging to **one** spouse arrived between the pair — and with both names under one line the
+  family above read as **the parents of the couple**, when they are only the parents of one of them.
+  A connector now **leaves the name of the parent and arrives at the name of the child**, measured on
+  the name's own column (the column sits between the photo on the left and the ▾ button on the right,
+  so a name's place is measured from that). On the couple box in the reported tree — `Rinku Singh` and
+  `Maninder Kaur Singh` — the line from `Parmjit Singh` used to land on the box centre, four pixels
+  short of where the two names meet; it now lands on the middle of **Maninder Kaur Singh's** own name,
+  so the line visibly belongs to her.
+- **A line both parents share still leaves the middle of the pair.** When the two people in the box are
+  both the child's parents the two ends average out, so the couple's own line down to their children is
+  unchanged — the change only separates the one-parent case from the two-parent case.
+
+Verified: 18 new assertions on the rendered markup — every connector's two ends land inside the right
+person's own name column, and nearer that person than anyone else in the box — on the reported family
+and on a couple in every box. The 159 existing assertions still pass (link 28, zoom 24, combine 18,
+space 23, badlink 28, badload 11, sidefamily 27); the 4,260-operation sweep is unchanged; over 250
+random families (2,325 connectors) and 6 set shapes, nothing overlaps, no connector runs upward and no
+connector crosses a box it does not join.
+
 ## 2026-10-10 — Brothers and sisters share a row, and a family sits above its children
 
 ### Fixed
