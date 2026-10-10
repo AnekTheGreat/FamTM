@@ -142,22 +142,39 @@ function tlayout(list){
  comps.forEach(c=>{
   const ord=new Map();let t=0;
   c.forEach(n=>{const dfs=x=>{if(ord.has(x.r))return;ord.set(x.r,t++);x.kids.forEach(dfs)};dfs(n)});
-  let leaf=0;c.forEach(n=>{n.x=null});
-  // a marriage can join two families that also point at each other, so never walk into a box twice
-  const put=n=>{if(n.x!=null)return n.x;if(n.vs)return null;n.vs=1;const kx=n.kids.map(put).filter(v=>v!=null);n.vs=0;n.x=kx.length?(kx[0]+kx[kx.length-1])/2:leaf++;return n.x};
-  c.filter(n=>!n.pr.length).forEach(put);c.forEach(put);
+  // Lay the family out in tidy blocks: a box is drawn above its own children and centred on them,
+  // and every child stays under its parent. A branch therefore reads straight down the page, and a
+  // family that joins by marriage — a brother's wife and her parents, say — is set beside the one
+  // it joins instead of being woven through it and hauling it around the page.
+  const span=new Map(),busy=new Set();
+  const place=(n,at)=>{if(span.has(n))return span.get(n);
+   if(busy.has(n)){const s=[at,at];span.set(n,s);return s}   // a marriage can join two families that point at each other
+   busy.add(n);
+   let cur=at,lo=null,hi=null;
+   n.kids.slice().sort((a,b)=>ord.get(a.r)-ord.get(b.r)).forEach(k=>{if(span.has(k))return;
+    const s=place(k,cur);cur=s[1]+1;if(lo==null)lo=s[0];hi=s[1]});
+   busy.delete(n);
+   if(lo==null){const kx=n.kids.map(k=>span.get(k)).filter(Boolean);   // children already drawn: sit above them
+    if(kx.length){lo=Math.min(...kx.map(s=>s[0]));hi=Math.max(...kx.map(s=>s[1]))}
+    else{n.x=at;const s=[at,at];span.set(n,s);return s}}
+   n.x=Math.floor((lo+hi)/2);const s=[Math.min(lo,n.x),Math.max(hi,n.x)];span.set(n,s);return s};
+  let cur=0;
+  c.filter(n=>!n.pr.length).forEach(n=>{const s=place(n,cur);cur=s[1]+1});
+  c.forEach(n=>{if(!span.has(n)){const s=place(n,cur);cur=s[1]+1}});
   const lay=new Map();c.forEach(n=>{if(!lay.has(n.d))lay.set(n.d,[]);lay.get(n.d).push(n)});
-  let mx=0,md=0;const off=[];
-  for(let d=0;lay.has(d);d++){const row=lay.get(d);md=d;
+  // walk the rows that are actually there: a family whose lines start below the top (which a
+  // saved wire crossed by mistake can do) is still drawn instead of throwing the whole tree away
+  let mx=0,y=0;const off=new Map();
+  [...lay.keys()].sort((a,b)=>a-b).forEach(d=>{const row=lay.get(d);off.set(d,y);
    row.sort((a,b)=>(a.x-b.x)||(ord.get(a.r)-ord.get(b.r)));
-   row.forEach((n,i)=>{n.x=Math.round(i?Math.max(row[i-1].x+1,n.x):Math.max(0,n.x));mx=Math.max(mx,n.x)});
-   off[d]=(off[d-1]||0)+(d?lay.get(d-1).reduce((h,n)=>Math.max(h,n.h),TH)+TGY:0)};
+   row.forEach((n,i)=>{n.x=Math.max(i?row[i-1].x+1:0,n.x);mx=Math.max(mx,n.x)});
+   y+=row.reduce((h,n)=>Math.max(h,n.h),TH)+TGY});
   const colW=new Array(mx+1).fill(0),colX=new Array(mx+1);let accW=0;   // boxes are different widths, so a column is as wide as its widest box
   c.forEach(n=>{colW[n.x]=Math.max(colW[n.x],n.w)});
   for(let i=0;i<=mx;i++){colX[i]=accW;accW+=(colW[i]||0)+TGX}
-  c.forEach(n=>{pos.set(n,{px:colX[n.x],py:(off[Math.min(n.d,md)]||0)+top,w:n.w,h:n.h});outN.push(n)});
+  c.forEach(n=>{pos.set(n,{px:colX[n.x],py:(off.get(n.d)||0)+top,w:n.w,h:n.h});outN.push(n)});
   c.forEach(n=>n.pr.forEach(r=>{const q=N.get(r);if(q)edges.push([pos.get(q),pos.get(n)])}));
-  top+=(off[md]||0)+lay.get(md).reduce((h,n)=>Math.max(h,n.h),TH)+TGY+TGAP;W=Math.max(W,accW-TGX)});
+  top+=y+TGAP;W=Math.max(W,accW-TGX)});
  return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
 const trow=x=>`<div class="trow"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></div>`;
 const tbox=(n,o,k)=>{const rows=n.mem.length>MAXROW?[...n.mem.slice(0,MAXROW-1),null]:n.mem;   // more people than fit: say how many

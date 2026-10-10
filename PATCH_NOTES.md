@@ -9,6 +9,33 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — A new branch goes down the page, not up it
+
+### Fixed
+- **A relative who arrives with a family of his own is no longer dragged across into it.** Adding a
+  brother with a wife, children **and her parents** used to shuffle your own family sideways and file
+  everyone into the other family's columns — the brother was hung under *her* parents instead of his
+  own, and his children ended up beneath the grandparents' box. Measured on that family: his box used
+  to be drawn **374px out to the side**, under her parents; now it is **straight below his parents**.
+  A child used to be drawn **449px from under its own parents**, under the grandparents' box; now every
+  child hangs under its parents. Her family is set **beside** yours — clear of every box of your own
+  family, with her brother under her parents — instead of being threaded through it.
+- **The same holds a generation down: your children's in-laws.** When a child marries and the spouse's
+  parents (and their other children) are recorded, the child's couple used to be drawn **374px out**
+  under those in-laws and a grandchild **449px away** under the great-grandparents' box; now the
+  child's couple is **straight below you**, each grandchild **hangs under its own parents**, and the
+  in-laws are set **aside as their own little branch**, with the spouse's brother under them.
+- Each family is laid out as its own **block**: a box is drawn above its children and centred on them,
+  and each child stays under its parent, so a branch reads straight down the page. A family that joins
+  by marriage is placed next to the one it joins rather than between its rows. (A wife's parents are
+  still drawn **above** the couple, as parents are — they are simply kept to the side, out of your own
+  family's columns, instead of pulling your brother and his children in with them.)
+- A saved tree whose rows do not start at the top (which a link crossed by mistake could produce) is
+  now **drawn instead of throwing the tree away** — the layout walks the rows that are actually there.
+
+Same family, same size: on the 23-person family the canvas is **1050×896** and the tree still opens at
+**78%** with 9.4px names, exactly as before this change.
+
 ## 2026-10-10 — A couple sits side by side in the tree
 
 ### Changed
