@@ -9,6 +9,25 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — A link that would break the tree is refused instead
+
+### Fixed
+- Linking a relative you had already added could save a link that made the family impossible to
+  draw — for instance a son's wife becoming his father's parent, or a great-granddaughter being
+  made a brother or sister. The tree then **stopped redrawing**, so it looked frozen and went on
+  showing the relationships from before the link. Links like that are now **refused with a message
+  naming both people**, nothing is written, and the tree always redraws.
+- A family **already saved** with such a link is **repaired when the app opens** — just those links
+  are undone, nothing else is touched, and the app says so.
+- **Names in a crowded box no longer run into each other.** A box that holds several people now
+  grows a line per person (and a second line for a long name), so no name is ever drawn over
+  another and a parent is never hidden inside their child's box.
+
+### Changed
+- The pickers now only offer people who could really hold the place you tapped: never yourself,
+  never your partner and never someone already in that place, and never anyone straight up or
+  down your own line — so a mis-tap cannot quietly wreck the family.
+
 ## 2026-10-10 — The tree opens readable instead of shrunk to a speck
 
 ### Changed

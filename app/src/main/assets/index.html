@@ -27,7 +27,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 #tt{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:9}#tt.on{opacity:1}
 .note{padding:12px 14px;margin:0 0 8px;background:var(--card);border:1px solid var(--line);border-radius:12px}.note div:first-child{white-space:pre-wrap}.cbar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.sel{background:var(--acc);color:var(--onacc);border-radius:6px;padding:1px 6px}textarea{resize:vertical}p{white-space:pre-wrap}
 .grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
-.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;min-width:0;overflow:hidden}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
+.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;min-width:0;flex:0 0 auto;overflow:hidden;overflow-wrap:break-word}.trow.more{color:var(--mute)}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
 </style></head><body>
 <div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="rf" class="ib" aria-label="Check for update">⟳</button><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
 <input id="sq" type="search" placeholder="Search people…" autocomplete="off"></div>
@@ -59,6 +59,46 @@ const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
 function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}index();render()}
 const desc=id=>{const s=new Set,st=[id];while(st.length)for(const c of C.get(st.pop())||[])if(!s.has(c.id)){s.add(c.id);st.push(c.id)}return s};
+const ancIds=id=>{const s=new Set,st=[...parIds(id)];while(st.length){const c=st.pop();if(s.has(c))continue;s.add(c);(M.get(c)&&M.get(c).parents||[]).forEach(q=>st.push(q))}return s};
+// Why a family can't be drawn: someone is their own ancestor, a partner is also a parent/child,
+// or two marriage-joined families point at each other in a loop. Keys are stable, so a link can
+// be checked by asking which problems it ADDS rather than which exist.
+function famIssues(){const out=[];
+ for(const p of P){
+  if(p.parents.includes(p.id)||p.partners.includes(p.id))out.push('self:'+p.id);
+  if(new Set(p.parents).size!==p.parents.length)out.push('dup:'+p.id);
+  if(p.parents.length>2)out.push('many:'+p.id);
+  for(const q of p.parents){if(M.has(q)&&ancIds(q).has(p.id))out.push('loop:'+p.id)}
+  for(const q of p.partners)if(ancIds(p.id).has(q)||ancIds(q).has(p.id))out.push('mixed:'+p.id)}
+ const uf=new Map();P.forEach(p=>uf.set(p.id,p.id));
+ const find=a=>{let r=a;while(uf.get(r)!==r)r=uf.get(r);while(uf.get(a)!==r){const n=uf.get(a);uf.set(a,r);a=n}return r};
+ P.forEach(p=>p.partners.forEach(q=>{if(M.has(q)){const x=find(p.id),y=find(q);if(x!==y)uf.set(y,x)}}));
+ const out2=new Map(),deg=new Map(),units=new Set();P.forEach(p=>units.add(find(p.id)));
+ P.forEach(p=>{const rp=find(p.id);p.parents.forEach(q=>{if(!M.has(q))return;const rq=find(q);if(rq===rp)return;
+  if(!out2.has(rq))out2.set(rq,new Set());if(!out2.get(rq).has(rp)){out2.get(rq).add(rp);deg.set(rp,(deg.get(rp)||0)+1)}})});
+ const q=[...units].filter(u=>!deg.get(u));let n=0;
+ while(q.length){const u=q.pop();n++;(out2.get(u)||new Set()).forEach(v=>{deg.set(v,deg.get(v)-1);if(!deg.get(v))q.push(v)})}
+ if(n<units.size)out.push('knot:'+n);
+ P.forEach(p=>p.parents.forEach(q2=>{if(M.has(q2)&&find(p.id)===find(q2))out.push('same:'+p.id)}));   // parent and child in one box
+ return out}
+const ISSUE={self:'That would link someone to themselves',dup:'Those two are already linked there',many:'already has two parents',
+ loop:'are already in the same line, so that would loop the family back on itself',
+ mixed:'are already related through each other’s line, so that would loop the family back on itself',
+ knot:'are already joined by a marriage, so that would tie the two sides in a loop'};
+// A link saved before this check existed can leave the family impossible to draw. Undo just
+// those links on launch, newest first, and say so rather than silently leaving a broken tree.
+function repair(){let fixed=0;const drop=[];
+ P.forEach(p=>p.parents.forEach(q=>{if(q===p.id||ancIds(q).has(p.id))drop.push([p,q])}));
+ drop.forEach(([p,q])=>{p.parents=p.parents.filter(x=>x!==q);fixed++});index();
+ for(let g=0;g<P.length&&famIssues().some(k=>k.startsWith('knot:'));g++){let done=0;
+  for(let i=P.length-1;i>=0&&!done;i--)for(let j=P[i].parents.length-1;j>=0&&!done;j--){
+   const p=P[i],q=p.parents.splice(j,1)[0];index();
+   if(famIssues().some(k=>k.startsWith('knot:'))){p.parents.splice(j,0,q);index()}else{fixed++;done=1}}}
+ if(fixed){try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}}return fixed}
+const issueMsg=(k,a,b)=>{const[t,id]=k.split(':');
+ return t=='many'?(M.get(id)?.name||'They')+' already has two parents':
+  t=='self'||t=='dup'?ISSUE[t]:t=='same'?'That would drop '+((M.get(id)?.name)||'someone')+' into the same box as their own parent – nothing was changed':
+  ((a&&a.name)||'They')+' and '+((b&&b.name)||'they')+' '+ISSUE[t]+' – nothing was changed'};
 const uniq=a=>[...new Set(a)],parIds=id=>(M.get(id)?.parents||[]),kidIds=id=>(C.get(id)||[]).map(x=>x.id);
 const byBirthId=(a,b)=>{const A=M.get(a),B=M.get(b);return A&&B?cmp(A,B):0};
 const sibIds=id=>uniq(parIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id).sort(byBirthId);
@@ -85,8 +125,13 @@ const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
 const oline=(n,d,ss)=>{if(ss.has(n.r))return '';ss.add(n.r);const k=n.kids.length,open=!col.has(n.r);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.r}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1,ss)).join(''):''}`};
 let TW=176,TH=72,TGX=28,TGY=56;
+const ROW=20,MAXROW=10;                    // a box grows a line per person sharing it (two if the name wraps)
 const TGAP=44;
 function tlayout(list){
+ // every name in a box needs its own line, and a long one needs two, so nothing can overlap
+ const CPL=Math.max(6,Math.floor((TW-62)/6.2)),lines=x=>1+(x.name.length+(x.nick?x.nick.length+3:0)>CPL?1:0);
+ list.forEach(n=>{const shown=n.mem.length>MAXROW?n.mem.slice(0,MAXROW-1):n.mem;
+  n.h=Math.max(TH,16+ROW*(shown.reduce((s,x)=>s+lines(x),0)+(n.mem.length>MAXROW?1:0)))});
  const N=new Map(list.map(n=>[n.r,n])),seen=new Set(),comps=[];
  list.forEach(n=>{if(seen.has(n.r))return;const st=[n.r],c=[];seen.add(n.r);
   while(st.length){const r=st.pop(),q=N.get(r);c.push(q);q.ck.concat(q.pr).forEach(k=>{if(N.has(k)&&!seen.has(k)){seen.add(k);st.push(k)}})}comps.push(c)});
@@ -95,18 +140,22 @@ function tlayout(list){
   const ord=new Map();let t=0;
   c.forEach(n=>{const dfs=x=>{if(ord.has(x.r))return;ord.set(x.r,t++);x.kids.forEach(dfs)};dfs(n)});
   let leaf=0;c.forEach(n=>{n.x=null});
-  const put=n=>{if(n.x!=null)return n.x;const kx=n.kids.map(put);n.x=kx.length?(kx[0]+kx[kx.length-1])/2:leaf++;return n.x};
+  // a marriage can join two families that also point at each other, so never walk into a box twice
+  const put=n=>{if(n.x!=null)return n.x;if(n.vs)return null;n.vs=1;const kx=n.kids.map(put).filter(v=>v!=null);n.vs=0;n.x=kx.length?(kx[0]+kx[kx.length-1])/2:leaf++;return n.x};
   c.filter(n=>!n.pr.length).forEach(put);c.forEach(put);
   const lay=new Map();c.forEach(n=>{if(!lay.has(n.d))lay.set(n.d,[]);lay.get(n.d).push(n)});
-  let mx=0,md=0;
-  lay.forEach((row,d)=>{md=Math.max(md,d);row.sort((a,b)=>(a.x-b.x)||(ord.get(a.r)-ord.get(b.r)));
-   row.forEach((n,i)=>{n.x=Math.round(i?Math.max(row[i-1].x+1,n.x):Math.max(0,n.x));mx=Math.max(mx,n.x)})});
-  c.forEach(n=>{pos.set(n,{px:n.x*(TW+TGX),py:n.d*(TH+TGY)+top});outN.push(n)});
+  let mx=0,md=0;const off=[];
+  for(let d=0;lay.has(d);d++){const row=lay.get(d);md=d;
+   row.sort((a,b)=>(a.x-b.x)||(ord.get(a.r)-ord.get(b.r)));
+   row.forEach((n,i)=>{n.x=Math.round(i?Math.max(row[i-1].x+1,n.x):Math.max(0,n.x));mx=Math.max(mx,n.x)});
+   off[d]=(off[d-1]||0)+(d?lay.get(d-1).reduce((h,n)=>Math.max(h,n.h),TH)+TGY:0)};
+  c.forEach(n=>{pos.set(n,{px:n.x*(TW+TGX),py:(off[Math.min(n.d,md)]||0)+top,h:n.h});outN.push(n)});
   c.forEach(n=>n.pr.forEach(r=>{const q=N.get(r);if(q)edges.push([pos.get(q),pos.get(n)])}));
-  top+=(md+1)*(TH+TGY)+TGAP;W=Math.max(W,(mx+1)*(TW+TGX))});
+  top+=(off[md]||0)+lay.get(md).reduce((h,n)=>Math.max(h,n.h),TH)+TGY+TGAP;W=Math.max(W,(mx+1)*(TW+TGX))});
  return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
 const trow=x=>`<div class="trow"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></div>`;
-const tbox=(n,o,k)=>`<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px;height:${TH}px">${ava(n.p)}<div class="tline">${n.mem.map(trow).join('')}</div>${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`;
+const tbox=(n,o,k)=>{const rows=n.mem.length>MAXROW?[...n.mem.slice(0,MAXROW-1),null]:n.mem;   // more people than fit: say how many
+ return `<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px;height:${o.h}px">${ava(n.p)}<div class="tline">${rows.map(x=>x?trow(x):`<div class="trow more">+${n.mem.length-MAXROW+1} more</div>`).join('')}</div>${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`};
 function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if(tab=='notes'){notesView(m);return}
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
  if(tab=='tree'){const full=build(),kc=new Map();full.forEach(n=>kc.set(n.r,n.kids.length));
@@ -119,7 +168,7 @@ function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if
   firstMap=0;
   const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?(sc<.95?'Drag to move · pinch or − / + to zoom · Fit shows everyone · ▾ folds a branch':'Drag to move · pinch or − / + to zoom · ▾ folds a branch'):'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
   if(tv=='list'){const ss=new Set(),order=full.filter(n=>!n.pr.length).concat(full);m.innerHTML=bar+'<div class="tscroll">'+order.map(n=>oline(n,0,ss)).join('')+'</div>';return}
-  m.innerHTML=bar+`<div class="treescroll" id="tv"><div class="treeinner" id="ti" style="width:${W}px;height:${H}px"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+TH,x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div>`;
+  m.innerHTML=bar+`<div class="treescroll" id="tv"><div class="treeinner" id="ti" style="width:${W}px;height:${H}px"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+(a.h||TH),x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div>`;
   if(tx==null||ty==null){tx=Math.max(0,($('#tv').clientWidth-W*sc)/2);ty=Math.max(0,($('#tv').clientHeight-H*sc)/2)}
   gW=W;gH=H;clampView($('#tv'));applyView($('#ti'));panzoom($('#tv'),$('#ti'));return}
  const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
@@ -229,17 +278,25 @@ function pickNode(id){if(!selA||!M.get(selA)){selA=id;render();return}
  if(selA===id){selA=null;render();return}
  selB=id;const a=M.get(selA),b=M.get(id);
  show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-rel="sb">They are siblings</button><button class="btn" data-rel="gp">${h(a.name)} is a grandparent of ${h(b.name)}</button><button class="btn" data-rel="gc">${h(a.name)} is a grandchild of ${h(b.name)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
-function applyLink(a,b,t){if(!a||!b)return 'Pick two different people';let err='';
+function applyLink(a,b,t){if(!a||!b)return 'Pick two different people';
+ const bk=P.map(p=>[p,p.parents.slice(),p.partners.slice()]),len=P.length,was=famIssues();   // a link is only kept if it adds no impossibility
+ const undo=()=>{bk.forEach(([p,pa,pt])=>{p.parents=pa;p.partners=pt});P.length=len};
+ let err='';
  const par=(c,p)=>c.id===p.id?'Same person':c.parents.includes(p.id)?'Already linked':c.parents.length>=2?c.name+' already has 2 parents':desc(c.id).has(p.id)?'That would make a loop':(c.parents.push(p.id),'');
  const gpar=(g,c)=>{if(!parIds(c.id).length)return c.name+' needs a parent first';if(parIds(c.id).some(p=>M.get(p)?.parents.includes(g.id)))return 'Already linked';const free=parIds(c.id).find(p=>p!==g.id&&(M.get(p)?.parents.length||0)<2&&!desc(p).has(g.id));return free?(M.get(free).parents.push(g.id),''):'Can’t add – their parents are full'};
  if(t=='pa')err=par(b,a);else if(t=='ch')err=par(a,b);else if(t=='pt'){if(a.partners.includes(b.id))err='Already partners';else{a.partners.push(b.id);b.partners.push(a.id)}}
  else if(t=='sb')err=sibLink(a,b);
- else if(t=='gp')err=gpar(a,b);else if(t=='gc')err=gpar(b,a);
- return err}
+ else if(t=='gp')err=gpar(a,b);else if(t=='gc')err=gpar(b,a);   if(err){undo();return err}
+ const bad=famIssues().filter(k=>!was.includes(k));
+ if(bad.length){undo();return issueMsg(bad[0],a,b)}
+ return ''}
 // from someone's card: pick a person you already added and say what they are to you
 const REL={par:'pa',kid:'ch',prt:'pt',sib:'sb',gp:'gp',gc:'gc'};
 function linkPick(rel,id){const t=REL[rel],p=M.get(id);if(!p||!t)return;
- const ex=new Set([id,...((rel=='par'||rel=='kid'||rel=='gp')?desc(id):[])]);
+ // only offer people who could really hold that place: not yourself, not your partner or someone
+ // already in it, and never straight up or down your own line
+ const already=rel=='par'?parIds(id):rel=='kid'?kidIds(id):rel=='gp'?gpIds(id):rel=='gc'?gcIds(id):rel=='sib'?sibIds(id):p.partners;
+ const ex=new Set([id,...p.partners,...ancIds(id),...already,...(rel=='gc'?kidIds(id):desc(id))]);
  picker(ex,oid=>{const err=applyLink(M.get(oid),M.get(id),t);
   if(err){say(err);return}commit();detail(id);say('Linked '+M.get(oid).name)})}
 function link(t){const a=M.get(selA),b=M.get(selB);if(!a||!b)return;const err=applyLink(a,b,t);
@@ -255,6 +312,8 @@ $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)
  const n=a.filter(x=>x&&x.name).map(normPerson),ids=new Set(n.map(x=>x.id));
  n.forEach(x=>{x.parents=x.parents.filter(i=>ids.has(i)).slice(0,2);x.partners=x.partners.filter(i=>ids.has(i))});
  ask(`Replace everything with ${n.length} people from this backup?`,()=>{P=n;N=nn;commit();say('Restored '+n.length+' people')})}catch(err){say('Not a valid backup file')}};
+const fixed=repair();
 index();render();
+if(fixed)say('Undid '+fixed+' link'+(fixed==1?'':'s')+' that looped the family back on itself');
 if('serviceWorker'in navigator&&!window.Android&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
