@@ -9,6 +9,37 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — Each person in a couple sits in their own card, so a line can be seen to touch one of them
+
+### Changed
+- **A box that holds a couple now draws each person in their own card**, joined by a short marriage bar,
+  instead of two names loose in one box. Each card has its own outline and a slightly darker fill, so the
+  pair reads as **two separate people at a glance** — and the line that arrives at the box can be seen to
+  land on **one** person's card. On the couple in the reported tree (`Rinku Singh` + `Maninder Kaur
+  Singh`) the drop from `Parmjit Singh` used to reach the middle of the box; it now ends on **Maninder
+  Kaur Singh's** own card, measured from the rendered pixels on a 390px-wide phone at 87% zoom.
+- **The connector reaches the card itself**, not just the edge of the box: a couple's box reserves only 2px
+  above the cards, so the line ends exactly on the top edge of the person's card.
+- **Everything else is where it was.** The card is drawn with `outline`, which takes up no space, so the
+  canvas, box widths, wrapping, row spacing and every connector position are unchanged (1050×896 for the
+  23-person family, opening at 78%) and no text is clipped.
+
+Verified in a real browser — headless Chrome at a 390px-wide phone viewport, both colour schemes:
+- the rendered markup was measured, not modelled: **78 geometry checks, 0 failed** — every connector's two
+  ends fall inside the right person's own card, and a line shared by both parents still leaves the middle
+  of the pair;
+- **10 pixel checks, 0 failed** — each card is filled and ringed (its outline and fill colours are present
+  in 33–72% of the band sampled along its edges and face), the marriage bar is inked between the cards, and
+  the line's last pixel sits on the target card's top edge;
+- **no clipped text** anywhere in six families (the card adds no inset, so a long name wraps as before),
+  and the canvas, scale and card widths are identical to the previous build.
+
+The existing suites still pass: link 28, zoom 24, combine 18, space 23, badlink 28, badload 11,
+sidefamily 27 = **159 assertions, 0 failed**, plus the 18 connector-anchoring assertions; the
+4,260-operation sweep introduced no violation; cyclic and 120-generation families terminate; over 250
+random families (2,325 connectors) and 6 set shapes nothing overlaps, no connector runs upward and no
+connector crosses a box it does not join.
+
 ## 2026-10-10 — A connector points at the person it belongs to, not at the couple
 
 ### Fixed
