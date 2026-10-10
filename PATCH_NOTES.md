@@ -9,6 +9,24 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — Related families are one tree, plus a ⟳ update button
+
+### Added
+- **⟳ in the top right, next to ⋮.** Tap it and the app checks for a newer version and
+  applies it straight away. (Until now a downloaded update only took effect on the *next*
+  launch; launching now says “Update ready – tap ⟳ to apply”.)
+
+### Changed
+- **Families joined by a marriage are drawn as one tree.** Each blood family used to get its
+  own block, so a couple whose two sides were both recorded was drawn twice and their two
+  families sat apart. People are now grouped into couples first, and a couple keeps the
+  parents from **both** sides — so the whole related family becomes one diagram and **nobody
+  is drawn twice**.
+- A family only stays a separate block when there is genuinely no relationship between them.
+- Because a combined tree is wider, the Tree still opens **fitted to the screen**. When it is
+  too wide to read at a glance the hint says so — tap **+** to zoom in, or **Everyone** for
+  readable names.
+
 ## 2026-10-10 — The tree fits a phone and shows every branch
 
 ### Fixed

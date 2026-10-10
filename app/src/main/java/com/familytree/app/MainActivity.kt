@@ -54,6 +54,23 @@ class MainActivity : AppCompatActivity() {
             data = Base64.decode(b64, Base64.DEFAULT)
             runOnUiThread { if (name.endsWith(".pdf")) pdfL.launch(name) else jsonL.launch(name) }
         }
+
+        // the ⟳ button in the app: check for an OTA update and reload straight away
+        @JavascriptInterface
+        fun refresh() {
+            Thread {
+                val r = otaUpdate()
+                runOnUiThread {
+                    toast(when (r) {
+                        "updated" -> "Update applied"
+                        "current" -> "Already up to date"
+                        "bad" -> "Update file looked wrong – kept this version"
+                        else -> "Couldn't reach the update server"
+                    })
+                    web.loadUrl(if (otaFile.exists()) "$HOST/ota/index.html" else "$HOST/assets/index.html")
+                }
+            }.start()
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -115,20 +132,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun sha(b: ByteArray) = MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
 
-    private fun checkOta() {
-        Thread {
-            try {
-                val c = URL("$OTA_URL?t=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
-                c.connectTimeout = 8000; c.readTimeout = 8000
-                if (c.responseCode != 200) return@Thread
-                val bytes = c.inputStream.use { it.readBytes() }
-                if (bytes.size < 2000 || !String(bytes).contains("familytree.v1")) return@Thread
+    // "updated" / "current" / "bad" / "offline"
+    private fun otaUpdate(): String = try {
+        val c = URL("$OTA_URL?t=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
+        c.connectTimeout = 8000; c.readTimeout = 8000
+        if (c.responseCode != 200) "offline"
+        else {
+            val bytes = c.inputStream.use { it.readBytes() }
+            if (bytes.size < 2000 || !String(bytes).contains("familytree.v1")) "bad"
+            else {
                 val current = if (otaFile.exists()) otaFile.readBytes() else assets.open("index.html").use { it.readBytes() }
-                if (sha(bytes) == sha(current)) return@Thread
-                val tmp = File(otaDir, "index.html.tmp")
-                tmp.writeBytes(bytes); tmp.renameTo(otaFile)
-                runOnUiThread { toast("Update downloaded – restart the app to apply") }
-            } catch (e: Exception) { }
-        }.start()
+                if (sha(bytes) == sha(current)) "current"
+                else { val tmp = File(otaDir, "index.html.tmp"); tmp.writeBytes(bytes); tmp.renameTo(otaFile); "updated" }
+            }
+        }
+    } catch (e: Exception) { "offline" }
+
+    private fun checkOta() {
+        Thread { if (otaUpdate() == "updated") runOnUiThread { toast("Update ready – tap ⟳ to apply") } }.start()
     }
 }

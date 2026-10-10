@@ -10,7 +10,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
 #top{position:sticky;top:env(safe-area-inset-top);background:var(--bg);z-index:2;padding:12px 16px 8px}
 #top div{display:flex;align-items:center;gap:8px;margin-bottom:8px}h1{font-size:21px;margin:0;flex:1}h2{margin:0 0 4px}h3{margin:16px 0 6px;font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
-.m,small{color:var(--mute)}.m{margin:4px 0}.ib{background:none;border:0;color:var(--ink);font-size:26px;padding:0 8px}
+.m,small{color:var(--mute)}.m{margin:4px 0}.ib{background:none;border:0;color:var(--ink);font-size:26px;padding:0 8px}#rf{font-size:22px}
 input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 label{display:block;font-size:13px;color:var(--mute);margin-top:10px}label input,label textarea{margin-top:4px;font-size:16px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 main{padding:4px 16px calc(150px + env(safe-area-inset-bottom))}
@@ -29,7 +29,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 .grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
 .nk{color:var(--mute);font-style:italic}.treescroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px}.treeinner{position:relative}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
 </style></head><body>
-<div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
+<div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="rf" class="ib" aria-label="Check for update">⟳</button><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
 <input id="sq" type="search" placeholder="Search people…" autocomplete="off"></div>
 <main id="main"></main>
 <nav><button data-t="people" class="on">People</button><button data-t="tree">Tree</button><button data-t="notes">Notes</button></nav>
@@ -68,35 +68,56 @@ const uncIds=id=>uniq(parIds(id).flatMap(i=>sibIds(i))).filter(x=>x!==id&&!parId
 const nieIds=id=>uniq(sibIds(id).flatMap(i=>kidIds(i)));
 const couIds=id=>uniq(uncIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id&&!nieIds(id).includes(x)&&!sibIds(id).includes(x));
 const sibLink=(a,b)=>{if(a.parents.some(p=>b.parents.includes(p)))return '';const tryAdd=(s,d)=>{const p=s.parents.find(x=>d.parents.length<2&&!d.parents.includes(x)&&!desc(d.id).has(x)&&x!==d.id);return p?(d.parents.push(p),true):false};if(a.parents.length&&tryAdd(a,b))return '';if(b.parents.length&&tryAdd(b,a))return '';if(a.parents.length<2&&b.parents.length<2){const nid=uid(),u={id:nid,name:'Unknown',nick:'',birth:'',death:'',note:'',parents:[],partners:[]};P.push(u);a.parents.push(nid);b.parents.push(nid);return ''}return 'No room to add a shared parent'};
-function build(){const seen=new Set;
- const mk=p=>{seen.add(p.id);const ps=p.partners.map(i=>M.get(i)).filter(Boolean);ps.forEach(x=>x.parents.length||seen.add(x.id));
-  const ch=[...new Set([p,...ps].flatMap(x=>C.get(x.id)||[]))].sort(cmp);
-  return{p,ps,kids:ch.map(c=>seen.has(c.id)?null:mk(c)).filter(Boolean)}};
- const out=[];P.filter(p=>!p.parents.length).sort(cmp).forEach(r=>seen.has(r.id)||out.push(mk(r)));P.forEach(p=>seen.has(p.id)||out.push(mk(p)));return out}
+function build(){
+ const uf=new Map(),find=a=>{let r=a;while(uf.get(r)!==r)r=uf.get(r);while(uf.get(a)!==r){const n=uf.get(a);uf.set(a,r);a=n}return r};
+ P.forEach(p=>uf.set(p.id,p.id));
+ P.forEach(p=>p.partners.forEach(q=>{if(M.has(q)){const a=find(p.id),b=find(q);if(a!==b)uf.set(b,a)}}));
+ const U=new Map();
+ P.forEach(p=>{const r=find(p.id);if(!U.has(r))U.set(r,{mem:[],cp:new Set(),ck:new Set()});U.get(r).mem.push(p.id)});
+ P.forEach(p=>{const rp=find(p.id);p.parents.forEach(q=>{if(!M.has(q))return;const rq=find(q);if(rq!==rp){U.get(rq).ck.add(rp);U.get(rp).cp.add(rq)}})});
+ const nodes=[];
+ U.forEach((u,r)=>{const mem=u.mem.map(i=>M.get(i)).sort(cmp);nodes.push({r,mem,p:mem[0],ps:mem.slice(1),pr:[...u.cp],ck:[...u.ck],kids:[],x:null,d:0})});
+ const N=new Map(nodes.map(n=>[n.r,n]));
+ nodes.forEach(n=>n.kids=n.ck.map(r=>N.get(r)).filter(Boolean));
+ const dep=(n,path)=>{if(n.fx)return n.d;if(path.has(n.r))return 0;path.add(n.r);let d=0;n.pr.forEach(r=>{const q=N.get(r);if(q)d=Math.max(d,dep(q,path)+1)});path.delete(n.r);n.d=d;n.fx=1;return d};
+ nodes.forEach(n=>dep(n,new Set()));return nodes}
 const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h(p.name)}</span> <small>${life(p)}</small>`+ps.map(x=>` <small>⚭</small> <span class="n${x.id===selA?' sel':''}" data-id="${x.id}">${h(x.name)}</span>`).join('');
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
-const oline=(n,d)=>{const k=n.kids.length,open=!col.has(n.p.id);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.p.id}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1)).join(''):''}`};
+const oline=(n,d,ss)=>{if(ss.has(n.r))return '';ss.add(n.r);const k=n.kids.length,open=!col.has(n.r);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.r}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1,ss)).join(''):''}`};
 let TW=176,TH=72,TGX=28,TGY=56;
 const TGAP=30;
-function tlayout(forest){const nodes=[],edges=[],pos=new Map();let W=0,top=0;
- forest.forEach(r=>{let cursor=0,mx=0,md=0;const start=nodes.length;
-  const place=(n,depth)=>{md=Math.max(md,depth);const kx=n.kids.map(k=>place(k,depth+1));let x;if(!kx.length){x=cursor;cursor+=1}else x=(kx[0]+kx[kx.length-1])/2;
-   const o={px:x*(TW+TGX),py:depth*(TH+TGY)};pos.set(n,o);nodes.push(n);mx=Math.max(mx,x);return x};
-  place(r,0);
-  for(let i=start;i<nodes.length;i++){const n=nodes[i],o=pos.get(n);o.py+=top;n.kids.forEach(k=>edges.push([o,pos.get(k)]))}
+function tlayout(list){
+ const N=new Map(list.map(n=>[n.r,n])),seen=new Set(),comps=[];
+ list.forEach(n=>{if(seen.has(n.r))return;const st=[n.r],c=[];seen.add(n.r);
+  while(st.length){const r=st.pop(),q=N.get(r);c.push(q);q.ck.concat(q.pr).forEach(k=>{if(N.has(k)&&!seen.has(k)){seen.add(k);st.push(k)}})}comps.push(c)});
+ const outN=[],edges=[],pos=new Map();let W=0,top=0;
+ comps.forEach(c=>{
+  const ord=new Map();let t=0;
+  c.forEach(n=>{const dfs=x=>{if(ord.has(x.r))return;ord.set(x.r,t++);x.kids.forEach(dfs)};dfs(n)});
+  let leaf=0;c.forEach(n=>{n.x=null});
+  const put=n=>{if(n.x!=null)return n.x;const kx=n.kids.map(put);n.x=kx.length?(kx[0]+kx[kx.length-1])/2:leaf++;return n.x};
+  c.filter(n=>!n.pr.length).forEach(put);c.forEach(put);
+  const lay=new Map();c.forEach(n=>{if(!lay.has(n.d))lay.set(n.d,[]);lay.get(n.d).push(n)});
+  let mx=0,md=0;
+  lay.forEach((row,d)=>{md=Math.max(md,d);row.sort((a,b)=>(a.x-b.x)||(ord.get(a.r)-ord.get(b.r)));
+   row.forEach((n,i)=>{n.x=Math.round(i?Math.max(row[i-1].x+1,n.x):Math.max(0,n.x));mx=Math.max(mx,n.x)})});
+  c.forEach(n=>{pos.set(n,{px:n.x*(TW+TGX),py:n.d*(TH+TGY)+top});outN.push(n)});
+  c.forEach(n=>n.pr.forEach(r=>{const q=N.get(r);if(q)edges.push([pos.get(q),pos.get(n)])}));
   top+=(md+1)*(TH+TGY)+TGAP;W=Math.max(W,(mx+1)*(TW+TGX))});
- return {nodes,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
-const tbox=(n,o,k)=>`<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px">${ava(n.p)}<div class="tline"><span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?`<small class="nk">“${h(n.p.nick)}”</small>`:''}<small>${life(n.p)}</small></div>${n.ps.map(x=>`<div class="tline"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?`<small class="nk">“${h(x.nick)}”</small>`:''}<small>${life(x)}</small></div>`).join('')}${k?`<button class="tex" data-exp="${n.p.id}">${col.has(n.p.id)?'▸':'▾'} ${k}</button>`:''}</div>`;
+ return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
+const tbox=(n,o,k)=>`<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px">${ava(n.p)}<div class="tline"><span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?`<small class="nk">“${h(n.p.nick)}”</small>`:''}<small>${life(n.p)}</small></div>${n.ps.map(x=>`<div class="tline"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?`<small class="nk">“${h(x.nick)}”</small>`:''}<small>${life(x)}</small></div>`).join('')}${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`;
 function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if(tab=='notes'){notesView(m);return}
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
- if(tab=='tree'){const full=build(),kc=new Map(),walk=n=>{kc.set(n.p.id,n.kids.length);n.kids.forEach(walk)};full.forEach(walk);
-  const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?'Each family is drawn as a tree · tap a name for details · ▾ folds a branch':'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
-  if(tv=='list'){m.innerHTML=bar+'<div class="tscroll">'+full.map(n=>oline(n,0)).join('')+'</div>';return}
+ if(tab=='tree'){const full=build(),kc=new Map();full.forEach(n=>kc.set(n.r,n.kids.length));
   const avail=Math.max(200,(m.clientWidth||window.innerWidth||360)-26),narrow=avail<560;
   TW=narrow?132:176;TGX=narrow?16:28;TH=narrow?66:72;TGY=narrow?46:56;
-  const prune=n=>({p:n.p,ps:n.ps,kids:col.has(n.p.id)?[]:n.kids.map(prune)}),L=tlayout(full.map(prune)),W=L.W,H=L.H;
+  const hide=new Set();
+  for(let go=1;go;){go=0;full.forEach(n=>{if(col.has(n.r)||hide.has(n.r))n.kids.forEach(k=>{if(!hide.has(k.r)){hide.add(k.r);go=1}})})}
+  const L=tlayout(full.filter(n=>!hide.has(n.r))),W=L.W,H=L.H;
   const use=sc==null?Math.max(.12,Math.min(1,avail/W)):sc;lastUse=use;
-  m.innerHTML=bar+`<div class="treescroll"><div class="treewrap" style="width:${Math.round(W*use)}px;height:${Math.round(H*use)}px"><div class="treeinner" style="width:${W}px;height:${H}px;transform:scale(${use});transform-origin:0 0"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+TH,x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.p.id)||0)).join('')}</div></div></div>`;return}
+  const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?(use<.62?'Whole family is shown · tap + to read names · ▾ folds a branch':'Tap a name for details · ▾ folds a branch'):'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
+  if(tv=='list'){const ss=new Set(),order=full.filter(n=>!n.pr.length).concat(full);m.innerHTML=bar+'<div class="tscroll">'+order.map(n=>oline(n,0,ss)).join('')+'</div>';return}
+  m.innerHTML=bar+`<div class="treescroll"><div class="treewrap" style="width:${Math.round(W*use)}px;height:${Math.round(H*use)}px"><div class="treeinner" style="width:${W}px;height:${H}px;transform:scale(${use});transform-origin:0 0"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+TH,x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div></div>`;return}
  const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
  m.innerHTML=a.map(p=>`<div class="card" data-id="${p.id}">${ava(p)}<span class="grow"><b>${h(p.name)}</b>${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}${p.parents.length?`<br><small>Child of ${p.parents.map(i=>{const q=M.get(i);return h(q?.name)+(q&&(q.birth||q.death)?' '+life(q):'')}).join(' & ')}</small>`:''}</span><small>${life(p)}</small><button class="eb" data-act="edit" data-pid="${p.id}" aria-label="Edit">✎</button></div>`).join('')||'<p class="m">No matches</p>'}
 const show=t=>{const d=$('#dlg');d.innerHTML=t;d.open||d.showModal();d.scrollTop=0};
@@ -141,7 +162,7 @@ const dl=(blob,n)=>{if(window.Android){const r=new FileReader();r.onload=()=>And
 const esc=s=>String(s).replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e\xa0-\xff]/g,'?').replace(/[\\()]/g,'\\$&');
 function pdf(){if(!P.length)return say('Nothing to export');
  const W=595,H=842,mg=44,pg=[];let cur=[],y=H-mg;const chk=()=>{if(y<mg+10){pg.push(cur);cur=[];y=H-mg}},T=(t,x,s=10,b=0)=>cur.push({t:esc(t),x,y,s,b});
- const walk=(n,d)=>{chk();const x=mg+Math.min(d,24)*14,nm=n.p.name+n.ps.map(z=>' & '+z.name).join(''),l=life(n.p);T(nm,x,10,1);l&&T(l,x+Math.min(nm.length,60)*5.9+8,9);y-=15;n.kids.forEach(k=>walk(k,d+1))};
+ const seen=new Set();const walk=(n,d)=>{if(seen.has(n.p.id))return;seen.add(n.p.id);chk();const x=mg+Math.min(d,24)*14,nm=n.p.name+n.ps.map(z=>' & '+z.name).join(''),l=life(n.p);T(nm,x,10,1);l&&T(l,x+Math.min(nm.length,60)*5.9+8,9);y-=15;n.kids.forEach(k=>walk(k,d+1))};
  T('Family Tree',mg,22,1);y-=24;T(P.length+' people  -  '+new Date().toLocaleDateString(),mg,9);y-=26;T('Descendant tree',mg,13,1);y-=20;build().forEach(n=>walk(n,0));
  y-=14;chk();T('Everyone (A-Z)',mg,13,1);y-=20;[...P].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{chk();T(p.name+(p.nick?' ('+p.nick+')':''),mg,9);T((p.birth?'b. '+p.birth:'')+(p.death?'    d. '+p.death:''),mg+300,9);y-=13});
  pg.push(cur);pg.forEach((c,i)=>c.push({t:`Page ${i+1} of ${pg.length}`,x:W/2-30,y:24,s:8,b:0}));
@@ -152,6 +173,7 @@ function pdf(){if(!P.length)return say('Nothing to export');
  let f='%PDF-1.4\n';const off=[];for(let i=1;i<o.length;i++){off[i]=f.length;f+=`${i} 0 obj\n${o[i]}\nendobj\n`}
  const x=f.length;f+=`xref\n0 ${o.length}\n0000000000 65535 f \n`+off.slice(1).map(v=>String(v).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<</Size ${o.length}/Root 1 0 R>>\nstartxref\n${x}\n%%EOF`;
  dl(new Blob([Uint8Array.from(f,c=>c.charCodeAt(0))],{type:'application/pdf'}),'family-tree.pdf');say('PDF exported')}
+const refresh=()=>{const A=window.Android;if(A&&A.refresh)A.refresh();else{say('Checking for the latest version…');setTimeout(()=>location.reload(),600)}};
 function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn d" data-act="wipe">Delete everything</button><button class="btn" data-act="close">Close</button></div>`)}
 function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);
  ({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
@@ -186,7 +208,7 @@ document.onclick=e=>{const el=e.target.closest('[data-id],[data-go],[data-act],[
  if(d.exp){e.preventDefault();col.has(d.exp)?col.delete(d.exp):col.add(d.exp);render();return}
  if(d.id||d.go){e.preventDefault();if(conn&&tab=='tree'&&d.id)pickNode(d.id);else detail(d.id||d.go)}
  else if(d.rel)link(d.rel);else if(d.t){tab=d.t;conn=false;selA=null;syncNav();render()}else act(d.act,d)};
-$('#mn').onclick=menu;$('#sq').oninput=e=>{qs=e.target.value;if(tab!='people'){tab='people';conn=false;syncNav()}render()};
+$('#mn').onclick=menu;$('#rf').onclick=refresh;$('#sq').oninput=e=>{qs=e.target.value;if(tab!='people'){tab='people';conn=false;syncNav()}render()};
 $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const a0=JSON.parse(await f.text()),a=Array.isArray(a0)?a0:(a0&&a0.people);if(!Array.isArray(a))throw 0;
  const nn=(Array.isArray(a0&&a0.notes)?a0.notes:[]).filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}));
  const n=a.filter(x=>x&&x.name).map(normPerson),ids=new Set(n.map(x=>x.id));
