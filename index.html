@@ -43,6 +43,12 @@ const yr=d=>d?d.slice(0,4):'',life=p=>p.birth||p.death?yr(p.birth)+'–'+yr(p.de
 const sk=p=>(p.birth||'9999')+p.name,cmp=(a,b)=>sk(a)<sk(b)?-1:1;
 const fmt=d=>/^\d{4}-\d\d-\d\d$/.test(d)?new Date(d+'T00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):d;
 const age=p=>{const b=parseInt(p.birth);if(!b)return'';const n=(p.death?parseInt(p.death):new Date().getFullYear())-b;return n>=0?(p.death?'Lived ':'Age ')+n:''};
+const pad2=n=>String(n).padStart(2,'0');
+const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m;
+ if(m=v.match(/^(\d{4})$/))return m[1];
+ if(m=v.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?$/))return +m[2]>=1&&+m[2]<=12?m[1]+'-'+pad2(m[2])+(m[3]?'-'+pad2(m[3]):''):null;
+ if(m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))return +m[1]>=1&&+m[1]<=12&&+m[2]>=1&&+m[2]<=31?m[3]+'-'+pad2(m[1])+'-'+pad2(m[2]):null;
+ return null};
 const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t.className='',2200)};
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
 function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say('Could not save – storage blocked')}index();render()}
@@ -72,7 +78,7 @@ function picker(ex,cb){const k=$('#pick');k.innerHTML='<input id="ps" placeholde
  $('#ps').oninput=go;$('#pl').onclick=e=>{const b=e.target.closest('[data-p]');if(b){k.close();cb(b.dataset.p)}};$('#pc').onclick=()=>k.close();go();k.showModal()}
 function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',note:'',parents:[],partners:[],...pre.f},st={par:[...p.parents],prt:[...p.partners]};
  show(`<h2>${e?'Edit person':'Add person'}</h2><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label>
- <div class="g2"><label>Born<input id="fb" value="${h(p.birth)}" placeholder="YYYY or YYYY-MM-DD"></label><label>Died<input id="fd" value="${h(p.death)}" placeholder="blank if living"></label></div>
+ <div class="g2"><label>Born<input id="fb" value="${h(p.birth)}" placeholder="MM/DD/YYYY or YYYY-MM-DD"></label><label>Died<input id="fd" value="${h(p.death)}" placeholder="blank if living"></label></div>
  <label>Notes<textarea id="fo" rows="2">${h(p.note)}</textarea></label><h3>Parents</h3><div id="rp"></div><h3>Partners</h3><div id="rt"></div><p class="er" id="er"></p>
  <div class="bar">${e?'<button class="btn d" id="fx">Delete</button>':''}<span></span><button class="btn" id="fc">Cancel</button><button class="btn p" id="fs">Save</button></div>`);
  const draw=()=>{const c=(a,k)=>a.map(i=>`<span class="chip">${h(M.get(i)?.name)} <button class="x" data-rm="${k}:${i}">×</button></span>`).join('');
@@ -81,8 +87,8 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
   else if(d.add)picker(new Set([id,...st[d.add],...(d.add=='par'?desc(id):[])]),i=>{st[d.add].push(i);draw()})};
  $('#rp').onclick=rel;$('#rt').onclick=rel;draw();$('#fc').onclick=()=>e?detail(id):$('#dlg').close();
  if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id)});commit()})};
- $('#fs').onclick=()=>{const name=$('#fn').value.trim(),b=$('#fb').value.trim(),d=$('#fd').value.trim(),re=/^\d{4}(-\d\d(-\d\d)?)?$/;
-  const bad=!name?'Name is required.':(b&&!re.test(b))||(d&&!re.test(d))?'Dates must be YYYY, YYYY-MM or YYYY-MM-DD.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
+ $('#fs').onclick=()=>{const name=$('#fn').value.trim(),b=normDate($('#fb').value),d=normDate($('#fd').value);
+  const bad=!name?'Name is required.':b===null||d===null?'Dates must be YYYY, YYYY-MM, YYYY-MM-DD or MM/DD/YYYY.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
   if(bad){$('#er').textContent=bad;return}
   const o=e||{id:uid()};Object.assign(o,{name,birth:b,death:d,note:$('#fo').value.trim(),parents:st.par,partners:st.prt});if(!e)P.push(o);
   P.forEach(x=>{if(x===o)return;const has=x.partners.includes(o.id),want=st.prt.includes(x.id);if(want&&!has)x.partners.push(o.id);if(!want&&has)x.partners=x.partners.filter(i=>i!==o.id)});
@@ -112,11 +118,11 @@ const syncNav=()=>document.querySelectorAll('nav button').forEach(b=>b.classList
 function ask(msg,yes){onYes=yes;show(`<h2>Are you sure?</h2><p>${h(msg)}</p><div class="bar"><span></span><button class="btn" data-act="close">Cancel</button><button class="btn d" data-act="yes">Yes</button></div>`)}
 function doYes(){const f=onYes;onYes=null;$('#dlg').close();f&&f()}
 function toggleConn(){conn=!conn;selA=null;render()}
-const parseNote=t=>{const L=t.trim(),g=r=>(L.match(r)||[])[1]||'',d='(\\d{4}(?:-\\d\\d(?:-\\d\\d)?)?)';
+const parseNote=t=>{const L=t.trim(),g=r=>{const m=L.match(r);return m?normDate(m[1])||m[1]:''},d='(\\d{4}(?:-\\d\\d?(?:-\\d\\d?)?)?|\\d{1,2}/\\d{1,2}/\\d{4})';
  const nm=L.split(/\s[-–—]\s|[,;:(]|\b(?:b|d|born|died)\b\.?\s*\d|\d{4}/i)[0].trim()||L.slice(0,40);
  return{name:nm.slice(0,60),birth:g(new RegExp('\\b(?:b\\.?|born)\\s*'+d,'i')),death:g(new RegExp('\\b(?:d\\.?|died)\\s*'+d,'i')),note:L}};
 const mkP=o=>{P.push({id:uid(),name:o.name,birth:o.birth,death:o.death,note:o.note,parents:[],partners:[]})};
-function notesView(m){m.innerHTML=`<textarea id="nt" rows="4" placeholder="Drop notes here, one per line. For example:&#10;Mary Smith b. 1950, John's wife&#10;John Smith, Peter's father"></textarea><div class="bar"><small>${N.length} note${N.length==1?'':'s'}</small><span></span>${N.length?'<button class="btn" data-act="allp">Make people from all</button>':''}<button class="btn p" data-act="addn">Add</button></div><div style="height:12px"></div>`+N.map(n=>`<div class="note"><div>${h(n.t)}</div><div style="margin-top:8px"><button class="chip" data-act="n2p" data-nid="${n.id}">Make person</button><button class="chip" data-act="n2a" data-nid="${n.id}">Attach to…</button><button class="chip" data-act="ndel" data-nid="${n.id}">Delete</button></div></div>`).join('')}
+function notesView(m){m.innerHTML=`<textarea id="nt" rows="4" placeholder="Drop notes here, one per line. For example:&#10;Mary Smith b. 1950, John's wife&#10;Jane Doe b. 01/13/1985"></textarea><div class="bar"><small>${N.length} note${N.length==1?'':'s'}</small><span></span>${N.length?'<button class="btn" data-act="allp">Make people from all</button>':''}<button class="btn p" data-act="addn">Add</button></div><div style="height:12px"></div>`+N.map(n=>`<div class="note"><div>${h(n.t)}</div><div style="margin-top:8px"><button class="chip" data-act="n2p" data-nid="${n.id}">Make person</button><button class="chip" data-act="n2a" data-nid="${n.id}">Attach to…</button><button class="chip" data-act="ndel" data-nid="${n.id}">Delete</button></div></div>`).join('')}
 function addN(){const v=$('#nt').value.split('\n').map(s=>s.trim()).filter(Boolean);if(!v.length)return say('Type a note first');N.unshift(...v.map(t=>({id:uid(),t})));commit();say('Added '+v.length)}
 function allP(){const k=N.length;N.forEach(n=>mkP(parseNote(n.t)));N=[];tab='tree';conn=true;selA=null;syncNav();commit();say('Made '+k+' people – tap two to connect them')}
 function n2p(id){const n=N.find(x=>x.id===id);if(n)form(null,{f:parseNote(n.t),fromNote:id})}
