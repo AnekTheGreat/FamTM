@@ -9,6 +9,23 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — A couple sits side by side in the tree
+
+### Changed
+- **Partners are drawn next to each other instead of one above the other.** In a box holding a
+  couple each person now gets their own **column**, so the two names sit **side by side**; the box
+  makes room by growing **wider** rather than taller. A box only grows taller when a single name is
+  too long for its column and wraps.
+- Each person's column is as wide as the name column of a box holding one person, so no partner is
+  squeezed into half the room. On a phone a couple's box is **194px** wide instead of 122, and a
+  single-person box is unchanged at 122.
+- A box holding a long marriage chain (up to 10 people) now spreads **across** the width instead of
+  stacking ten lines high, so the tree is shorter as well as wider.
+
+Measured on the 23-person family: 9 of 14 boxes hold a couple and are now 194px wide (was 122 flat),
+all boxes are 84px tall (was 84 or 96), and the canvas is **1050×896** instead of **708×944**. The
+Tree still opens at a readable zoom and **Fit** still shows the whole family at once.
+
 ## 2026-10-10 — A link that would break the tree is refused instead
 
 ### Fixed
@@ -19,8 +36,8 @@ in any version re-imports into any other.
   naming both people**, nothing is written, and the tree always redraws.
 - A family **already saved** with such a link is **repaired when the app opens** — just those links
   are undone, nothing else is touched, and the app says so.
-- **Names in a crowded box no longer run into each other.** A box that holds several people now
-  grows a line per person (and a second line for a long name), so no name is ever drawn over
+- **Names in a crowded box no longer run into each other.** A box that holds several people gives
+  each one their own **column** (and a second line for a long name), so no name is ever drawn over
   another and a parent is never hidden inside their child's box.
 
 ### Changed
@@ -75,10 +92,11 @@ opens and the rest one drag away.
 ## 2026-10-10 — Room to breathe in the tree boxes
 
 ### Changed
-- **A couple's names no longer sit side by side and touch.** Each person in a box now gets
+- ~~**A couple's names no longer sit side by side and touch.** Each person in a box now gets
   their **own line** inside it, with their dates beside the name, so two names can never
-  collide. Every box declares the same width **and** height, so boxes always line up evenly
-  and can never creep into each other.
+  collide.~~ Superseded: partners are **side by side** again (see the entry at the top). The two
+  names still can never collide, because each now gets its own equal-width **column** that clips
+  and wraps its own text rather than overlapping its partner's.
 - Roomier, more even spacing: column gap 22px (was 16) and row pitch 136px (was 112) on a
   phone, with 44px between one family block and the next.
 

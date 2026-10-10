@@ -27,7 +27,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 #tt{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:9}#tt.on{opacity:1}
 .note{padding:12px 14px;margin:0 0 8px;background:var(--card);border:1px solid var(--line);border-radius:12px}.note div:first-child{white-space:pre-wrap}.cbar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.sel{background:var(--acc);color:var(--onacc);border-radius:6px;padding:1px 6px}textarea{resize:vertical}p{white-space:pre-wrap}
 .grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
-.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;min-width:0;flex:0 0 auto;overflow:hidden;overflow-wrap:break-word}.trow.more{color:var(--mute)}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
+.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:row;align-items:flex-start;gap:10px;flex:1 1 auto;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;flex:1 1 0;min-width:0;overflow:hidden;overflow-wrap:break-word}.trow.more{color:var(--mute)}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
 </style></head><body>
 <div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="rf" class="ib" aria-label="Check for update">⟳</button><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
 <input id="sq" type="search" placeholder="Search people…" autocomplete="off"></div>
@@ -124,14 +124,17 @@ function build(){
 const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h(p.name)}</span> <small>${life(p)}</small>`+ps.map(x=>` <small>⚭</small> <span class="n${x.id===selA?' sel':''}" data-id="${x.id}">${h(x.name)}</span>`).join('');
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
 const oline=(n,d,ss)=>{if(ss.has(n.r))return '';ss.add(n.r);const k=n.kids.length,open=!col.has(n.r);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.r}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1,ss)).join(''):''}`};
-let TW=176,TH=72,TGX=28,TGY=56;
-const ROW=20,MAXROW=10;                    // a box grows a line per person sharing it (two if the name wraps)
-const TGAP=44;
+let TW=176,TH=72,TGX=28,TGY=56,CW=140;
+const ROW=20,MAXROW=10;                    // a name that wraps needs a line; the box grows taller for it
+const TGAP=44,COLGAP=10,CHROME=56;         // people in a box sit side by side, so it grows wider instead
 function tlayout(list){
- // every name in a box needs its own line, and a long one needs two, so nothing can overlap
- const CPL=Math.max(6,Math.floor((TW-62)/6.2)),lines=x=>1+(x.name.length+(x.nick?x.nick.length+3:0)>CPL?1:0);
- list.forEach(n=>{const shown=n.mem.length>MAXROW?n.mem.slice(0,MAXROW-1):n.mem;
-  n.h=Math.max(TH,16+ROW*(shown.reduce((s,x)=>s+lines(x),0)+(n.mem.length>MAXROW?1:0)))});
+ // partners get a column each, side by side: no two names can ever be drawn over one another
+ list.forEach(n=>{const shown=n.mem.length>MAXROW?n.mem.slice(0,MAXROW-1):n.mem,more=n.mem.length>MAXROW?1:0;
+  n.cols=shown.length+more;
+  n.w=Math.max(TW,CHROME+n.cols*CW+(n.cols-1)*COLGAP);
+  const colw=Math.max(40,(n.w-CHROME-(n.cols-1)*COLGAP)/n.cols),CPL=Math.max(6,Math.floor(colw/6.8)),
+   lines=x=>1+(x.name.length+(x.nick?x.nick.length+3:0)>CPL?1:0);
+  n.h=Math.max(TH,16+ROW*shown.reduce((s,x)=>Math.max(s,lines(x)),1))});
  const N=new Map(list.map(n=>[n.r,n])),seen=new Set(),comps=[];
  list.forEach(n=>{if(seen.has(n.r))return;const st=[n.r],c=[];seen.add(n.r);
   while(st.length){const r=st.pop(),q=N.get(r);c.push(q);q.ck.concat(q.pr).forEach(k=>{if(N.has(k)&&!seen.has(k)){seen.add(k);st.push(k)}})}comps.push(c)});
@@ -149,18 +152,21 @@ function tlayout(list){
    row.sort((a,b)=>(a.x-b.x)||(ord.get(a.r)-ord.get(b.r)));
    row.forEach((n,i)=>{n.x=Math.round(i?Math.max(row[i-1].x+1,n.x):Math.max(0,n.x));mx=Math.max(mx,n.x)});
    off[d]=(off[d-1]||0)+(d?lay.get(d-1).reduce((h,n)=>Math.max(h,n.h),TH)+TGY:0)};
-  c.forEach(n=>{pos.set(n,{px:n.x*(TW+TGX),py:(off[Math.min(n.d,md)]||0)+top,h:n.h});outN.push(n)});
+  const colW=new Array(mx+1).fill(0),colX=new Array(mx+1);let accW=0;   // boxes are different widths, so a column is as wide as its widest box
+  c.forEach(n=>{colW[n.x]=Math.max(colW[n.x],n.w)});
+  for(let i=0;i<=mx;i++){colX[i]=accW;accW+=(colW[i]||0)+TGX}
+  c.forEach(n=>{pos.set(n,{px:colX[n.x],py:(off[Math.min(n.d,md)]||0)+top,w:n.w,h:n.h});outN.push(n)});
   c.forEach(n=>n.pr.forEach(r=>{const q=N.get(r);if(q)edges.push([pos.get(q),pos.get(n)])}));
-  top+=(off[md]||0)+lay.get(md).reduce((h,n)=>Math.max(h,n.h),TH)+TGY+TGAP;W=Math.max(W,(mx+1)*(TW+TGX))});
+  top+=(off[md]||0)+lay.get(md).reduce((h,n)=>Math.max(h,n.h),TH)+TGY+TGAP;W=Math.max(W,accW-TGX)});
  return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
 const trow=x=>`<div class="trow"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></div>`;
 const tbox=(n,o,k)=>{const rows=n.mem.length>MAXROW?[...n.mem.slice(0,MAXROW-1),null]:n.mem;   // more people than fit: say how many
- return `<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px;height:${o.h}px">${ava(n.p)}<div class="tline">${rows.map(x=>x?trow(x):`<div class="trow more">+${n.mem.length-MAXROW+1} more</div>`).join('')}</div>${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`};
+ return `<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${o.w}px;height:${o.h}px">${ava(n.p)}<div class="tline">${rows.map(x=>x?trow(x):`<div class="trow more">+${n.mem.length-MAXROW+1} more</div>`).join('')}</div>${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`};
 function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if(tab=='notes'){notesView(m);return}
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
  if(tab=='tree'){const full=build(),kc=new Map();full.forEach(n=>kc.set(n.r,n.kids.length));
   const avail=Math.max(200,(m.clientWidth||window.innerWidth||360)-26),narrow=avail<560;
-  TW=narrow?122:176;TGX=narrow?18:30;TH=narrow?84:84;TGY=narrow?58:60;
+  TW=narrow?122:176;TGX=narrow?18:30;TH=narrow?84:84;TGY=narrow?58:60;CW=narrow?64:96;
   const hide=new Set();
   for(let go=1;go;){go=0;full.forEach(n=>{if(col.has(n.r)||hide.has(n.r))n.kids.forEach(k=>{if(!hide.has(k.r)){hide.add(k.r);go=1}})})}
   const L=tlayout(full.filter(n=>!hide.has(n.r))),W=L.W,H=L.H;
@@ -168,7 +174,7 @@ function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if
   firstMap=0;
   const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?(sc<.95?'Drag to move · pinch or − / + to zoom · Fit shows everyone · ▾ folds a branch':'Drag to move · pinch or − / + to zoom · ▾ folds a branch'):'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
   if(tv=='list'){const ss=new Set(),order=full.filter(n=>!n.pr.length).concat(full);m.innerHTML=bar+'<div class="tscroll">'+order.map(n=>oline(n,0,ss)).join('')+'</div>';return}
-  m.innerHTML=bar+`<div class="treescroll" id="tv"><div class="treeinner" id="ti" style="width:${W}px;height:${H}px"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+(a.h||TH),x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div>`;
+  m.innerHTML=bar+`<div class="treescroll" id="tv"><div class="treeinner" id="ti" style="width:${W}px;height:${H}px"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+(a.w||TW)/2,y1=a.py+(a.h||TH),x2=b.px+(b.w||TW)/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div>`;
   if(tx==null||ty==null){tx=Math.max(0,($('#tv').clientWidth-W*sc)/2);ty=Math.max(0,($('#tv').clientHeight-H*sc)/2)}
   gW=W;gH=H;clampView($('#tv'));applyView($('#ti'));panzoom($('#tv'),$('#ti'));return}
  const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
