@@ -28,7 +28,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 .note{padding:12px 14px;margin:0 0 8px;background:var(--card);border:1px solid var(--line);border-radius:12px}.note div:first-child{white-space:pre-wrap}.cbar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.sel{background:var(--acc);color:var(--onacc);border-radius:6px;padding:1px 6px}textarea{resize:vertical}p{white-space:pre-wrap}
 .grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
 .nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:row;align-items:flex-start;gap:10px;flex:1 1 auto;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;flex:1 1 0;min-width:0;overflow:hidden;overflow-wrap:break-word}.trow.more{color:var(--mute)}
-.tnode.multi{align-items:flex-start;padding-top:2px;border-color:transparent;background:transparent}.tnode.multi .trow{outline:1px solid var(--line);outline-offset:-1px;border-radius:8px;background:var(--bg)}.mar{position:absolute;top:17px;width:10px;height:2px;background:var(--line);pointer-events:none}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
+.tnode.multi{padding:2px 10px;border-color:transparent;background:transparent}.tnode.multi .tline{align-self:stretch;align-items:stretch}.tnode.multi .trow{display:flex;align-items:center;outline:1px solid var(--line);outline-offset:-1px;border-radius:8px;background:var(--card)}.cw{flex:1 1 auto;min-width:0}.mar{position:absolute;top:50%;margin-top:-1px;width:10px;height:2px;background:var(--line);pointer-events:none}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
 </style></head><body>
 <div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="rf" class="ib" aria-label="Check for update">⟳</button><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
 <input id="sq" type="search" placeholder="Search people…" autocomplete="off"></div>
@@ -172,29 +172,50 @@ function tlayout(list){
   const place=(n,at)=>{if(span.has(n))return span.get(n);
    if(busy.has(n)){const s=[at,at];span.set(n,s);return s}   // a marriage can join two families that point at each other
    busy.add(n);
-   let cur=at,lo=null,hi=null;
-   n.kids.slice().sort((a,b)=>ord.get(a.r)-ord.get(b.r)).forEach(k=>{if(span.has(k))return;
-    const s=place(k,cur);if(lo==null)lo=s[0];let rt=s[1];
+   let cur=at;
+   // Brothers and sisters are drawn side by side, so a child who also belongs to another family (they
+   // married into it) is put on the side that family sits on: last among their own brothers and sisters
+   // while that family is still to come, first when it has already been laid out to the left. Either way
+   // every family keeps its own children in one run, under its own mother and father.
+   const side=k=>{const o=k.pr.filter(r=>r!==n.r);return o.length?o.some(r=>span.has(N.get(r)))?0:2:1};
+   n.kids.slice().sort((a,b)=>(side(a)-side(b))||(ord.get(a.r)-ord.get(b.r))).forEach(k=>{if(span.has(k))return;
+    cur=place(k,cur)[1]+1;
     // a child who married into another family brings that family with them: it is laid out right
-    // beside the couple, inside their parents' span, instead of out at the far end of the page
-    k.pr.forEach(r=>{const q=N.get(r);if(q&&q!==n&&!busy.has(q)&&!span.has(q))rt=Math.max(rt,place(q,rt+1)[1])});
-    hi=rt;cur=rt+1});
+    // beside the couple instead of out at the far end of the page. It only takes up room — it does not
+    // count as one of this family's children, because a mother and father are centred over their own
+    // children and nobody else's.
+    k.pr.forEach(r=>{const q=N.get(r);if(q&&q!==n&&!busy.has(q)&&!span.has(q))cur=Math.max(cur,place(q,cur)[1]+1)})});
    busy.delete(n);
-   if(lo==null){const kx=n.kids.map(k=>span.get(k)).filter(Boolean);   // children already drawn: sit above them
-    if(kx.length){lo=Math.min(...kx.map(s=>s[0]));hi=Math.max(...kx.map(s=>s[1]))}
-    else{n.x=at;const s=[at,at];span.set(n,s);return s}}
-   n.x=Math.floor((lo+hi)/2);const s=[Math.min(lo,n.x),Math.max(hi,n.x)];span.set(n,s);return s};
+   const kx=n.kids.map(k=>span.get(k)).filter(Boolean);   // every child of this box, drawn before or just now
+   if(kx.length){const lo=Math.min(...kx.map(s=>s[0])),hi=Math.max(...kx.map(s=>s[1]));
+    n.x=Math.floor((lo+hi)/2);const s=[lo,Math.max(hi,n.x)];span.set(n,s);return s}
+   n.x=at;const s=[at,at];span.set(n,s);return s};
   let cur=0;
   c.filter(n=>!n.pr.length).forEach(n=>{const s=place(n,cur);cur=s[1]+1});
   c.forEach(n=>{if(!span.has(n)){const s=place(n,cur);cur=s[1]+1}});
   const lay=new Map();c.forEach(n=>{if(!lay.has(n.d))lay.set(n.d,[]);lay.get(n.d).push(n)});
   // walk the rows that are actually there: a family whose lines start below the top (which a
   // saved wire crossed by mistake can do) is still drawn instead of throwing the whole tree away
-  let mx=0,y=0;const off=new Map();
+  let y=0;const off=new Map(),rows=[];
   [...lay.keys()].sort((a,b)=>a-b).forEach(d=>{const row=lay.get(d);off.set(d,y);
    row.sort((a,b)=>(a.x-b.x)||(ord.get(a.r)-ord.get(b.r)));
-   row.forEach((n,i)=>{n.x=Math.max(i?row[i-1].x+1:0,n.x);mx=Math.max(mx,n.x)});
+   row.forEach((n,i)=>{n.x=Math.max(i?row[i-1].x+1:0,n.x)});
+   rows.push(row);
    y+=row.reduce((h,n)=>Math.max(h,n.h),TH)+TGY});
+  // Now that every row has its columns, put each mother and father over the middle of their own
+  // children — the same thing place() asked for, but measured against the columns the children were
+  // actually given, because a row can only be settled once every box in it has one. A child who went on
+  // to have children of their own is the one the family is read through, so a family is centred on
+  // those: a brother who married sits directly under his own parents rather than off beside them. When
+  // nobody has children yet, every child counts. Deepest row first, so a parent follows its children and
+  // not the other way round; a box only ever moves right, which is what keeps every family's children in
+  // one run with no two boxes in a run on top of each other.
+  for(let i=rows.length-1;i>=0;i--){const row=rows[i];
+   row.forEach(n=>{if(!n.kids.length)return;const grow=n.kids.filter(k=>k.kids.length),
+    kx=(grow.length?grow:n.kids).map(k=>k.x),lo=Math.min(...kx),hi=Math.max(...kx);
+    n.x=lo+Math.floor((hi-lo)/2)});
+   row.forEach((n,i2)=>{n.x=Math.max(i2?row[i2-1].x+1:0,n.x)})}
+  let mx=0;c.forEach(n=>{mx=Math.max(mx,n.x)});
   const colW=new Array(mx+1).fill(0),colX=new Array(mx+1);let accW=0;   // boxes are different widths, so a column is as wide as its widest box
   c.forEach(n=>{colW[n.x]=Math.max(colW[n.x],n.w)});
   for(let i=0;i<=mx;i++){colX[i]=accW;accW+=(colW[i]||0)+TGX}
@@ -204,7 +225,7 @@ function tlayout(list){
    edges.push(Object.assign([pos.get(q),pos.get(n)],{rel}))}));
   top+=y+TGAP;W=Math.max(W,accW-TGX)});
  return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
-const trow=x=>`<div class="trow"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></div>`;
+const trow=x=>`<div class="trow"><span class="cw"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></span></div>`;
 const tbox=(n,o,k)=>{const rows=n.mem.length>MAXROW?[...n.mem.slice(0,MAXROW-1),null]:n.mem;   // more people than fit: say how many
  // A box holding a couple draws each person in their own card with a marriage bar between them, so a
  // connector can be seen to touch one person's card instead of the middle of the pair.

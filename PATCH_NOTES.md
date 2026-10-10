@@ -9,6 +9,79 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — Brothers and sisters are drawn in one run, under their own mother and father
+
+### Changed
+- **Each family's children now sit in one run on their row.** A child who married into another family is
+  drawn at the end of their own brothers and sisters nearest the family they married into, so a family
+  reads as a block: mother and father above, their sons and daughters side by side, and their children on
+  the row below theirs — branching out and going down.
+- **A mother and father are drawn over their own children**, and over the ones the family is read through
+  (children who went on to have children of their own), instead of over a block that belongs to a family
+  which merely married into theirs. In the reported tree `Parmjit Singh` and `Gurjit Kaur` were drawn above
+  `Baljit Singh` & `Deepa Kaur` — another family's children — with `Maninder Kaur Singh` three boxes away;
+  they now sit over their own three children (`Kulvinder`, `Ranbir` and `Maninder`) with `Maninder`'s box
+  next to her brother's.
+- **A row is settled after every column in it is known**, so a parent follows the columns its children
+  actually got. `S Grandad` was a full box-width off his own son; he is now directly above him.
+- Nothing else moved: same canvas for the 23-person family (1850×812), same box widths and row spacing, no
+  text clipped, and the tree still opens at the same readable zoom.
+
+### Fixed
+- Families could interleave: two families' children were woven together, so a parent's lines fanned across
+  the whole row and you could not see whose sons and daughters were whose. Measured on the 23-person
+  family, the sideways travel from a mother and father to a child fell from **average 249px and worst
+  748px** to **average 156px and worst 374px**, and both families' children are now unbroken runs.
+
+Verified on the drawn page and in the layout itself:
+- **96 new layout checks, 0 failed** — every box's children are drawn below it, no other family's box sits
+  inside a family's run of brothers and sisters, and every mother and father is drawn over their own
+  children (the in-law side of a marriage, whose child can only be drawn under one of the two families, is
+  drawn beside it with its line coming in sideways);
+- **78 geometry checks, 0 failed** in a real browser at a 390px phone viewport, **414 consistency checks,
+  0 failed** and **10 pixel checks, 0 failed** in dark and light mode, with **no clipped text** in six
+  families;
+- **177 existing assertions, 0 failed** (link 28, zoom 24, combine 18, space 23, badlink 28, badload 11,
+  sidefamily 27, anchoring 18), the 4,260-operation sweep introduced no violation, and over 250 random
+  families and 6 set shapes no box overlaps, no connector runs upward, none crosses a box and none leaves
+  the canvas; cyclic and 120-generation families still terminate.
+
+Three assertions were restated rather than loosened: `sidefamily` previously required a married brother's
+couple to be drawn in the *same column* as his parents and each of a wife's parents' children to be within
+half a box of them — that is not possible once a family's children share one run, so those checks now state
+the requested rule instead (the couple is drawn inside its own family's run, and a parent is drawn between
+its own children rather than under the family it married into). Everything `sidefamily` was written to
+protect — the couple not being dragged under the wife's parents, her family set beside them, the children
+under their own parents — still passes.
+
+## 2026-10-10 — Each person fills their own cell, so a couple stops looking like a half-empty box
+
+### Changed
+- **The two people in a couple now fill their box.** Before, each person's card hugged its own text and sat
+  at the top of the box: one card came out taller than the other, the names were stranded at the top and the
+  rest of the box was empty — which read as the tree glitching out. Both cards are now exactly as tall as the
+  box's inside, so the pair is a tidy two-cell block and every box in a row is the same height.
+- **A card is now the same colour as a single person's box** (`--card`, with a 1px outline), instead of a
+  darker tint: on one row a person on their own and a person in a couple now look like the same thing drawn
+  once or twice, rather than two different kinds of box.
+- **The name is centred in its card**, so a one-line name sits level with a two-line one beside it.
+- **The marriage bar moved down to the middle of the box** (it was 17px below the top, which on the taller
+  card read as a stray dash). It now sits in the middle of the 10px gap between the two cards.
+
+Measured on the rendered page (headless Chrome, 390px-wide phone viewport, six families, both colour
+schemes):
+- **414 consistency checks, 0 failed** — every card in every couple is the same height as its partner, fills
+  the box's inside exactly (78px of an 84px box), is flush with the box's top and bottom, carries the same
+  fill as a single person's box, has its name centred, and the marriage bar is centred in the gap between
+  the two cards and on the vertical middle of the box;
+- **78 geometry checks, 0 failed** and **0 clipped text** — every connector still leaves and arrives on the
+  right person's card, and long names still wrap instead of being cut;
+- **10 pixel checks, 0 failed** in dark and light mode — each card is still filled and ringed and the line's
+  last pixel still sits on the target card's top edge;
+- **177 Node assertions, 0 failed** (link 28, zoom 24, combine 18, space 23, badlink 28, badload 11,
+  sidefamily 27, anchoring 18), the 4,260-operation sweep introduced no violation, and over 250 random
+  families and 6 set shapes nothing overlaps, no connector runs upward and none crosses a box.
+
 ## 2026-10-10 — Each person in a couple sits in their own card, so a line can be seen to touch one of them
 
 ### Changed
