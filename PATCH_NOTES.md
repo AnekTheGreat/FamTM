@@ -25,6 +25,11 @@ in any version re-imports into any other.
   under those in-laws and a grandchild **449px away** under the great-grandparents' box; now the
   child's couple is **straight below you**, each grandchild **hangs under its own parents**, and the
   in-laws are set **aside as their own little branch**, with the spouse's brother under them.
+- **A family that marries into another is now laid out right beside the couple it joins**, inside their
+  parents' span, instead of at the far end of the page — so the two halves of a related family stay
+  together and the connecting lines stay short. Across 40 generated families with marriages at every
+  depth the average sideways drift of a connector fell from **425px to 365px**, with nothing overlapping
+  and nothing drawn outside the canvas.
 - Each family is laid out as its own **block**: a box is drawn above its children and centred on them,
   and each child stays under its parent, so a branch reads straight down the page. A family that joins
   by marriage is placed next to the one it joins rather than between its rows. (A wife's parents are

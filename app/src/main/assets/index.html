@@ -152,7 +152,11 @@ function tlayout(list){
    busy.add(n);
    let cur=at,lo=null,hi=null;
    n.kids.slice().sort((a,b)=>ord.get(a.r)-ord.get(b.r)).forEach(k=>{if(span.has(k))return;
-    const s=place(k,cur);cur=s[1]+1;if(lo==null)lo=s[0];hi=s[1]});
+    const s=place(k,cur);if(lo==null)lo=s[0];let rt=s[1];
+    // a child who married into another family brings that family with them: it is laid out right
+    // beside the couple, inside their parents' span, instead of out at the far end of the page
+    k.pr.forEach(r=>{const q=N.get(r);if(q&&q!==n&&!busy.has(q)&&!span.has(q))rt=Math.max(rt,place(q,rt+1)[1])});
+    hi=rt;cur=rt+1});
    busy.delete(n);
    if(lo==null){const kx=n.kids.map(k=>span.get(k)).filter(Boolean);   // children already drawn: sit above them
     if(kx.length){lo=Math.min(...kx.map(s=>s[0]));hi=Math.max(...kx.map(s=>s[1]))}
