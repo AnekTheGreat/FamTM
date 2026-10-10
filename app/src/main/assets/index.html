@@ -38,7 +38,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 <script>
 const $=s=>document.querySelector(s),KEY='familytree.v1',uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,col=new Set(),lastUse=1,tv=(window.innerWidth||999)<640?'list':'map';
+let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,col=new Set(),lastUse=1,tv='map';
 const str=x=>String(x??''),arr=x=>Array.isArray(x)?x:[];
 const normPerson=x=>{const o=x&&typeof x=='object'?x:{};return{id:str(o.id)||uid(),name:str(o.name),nick:str(o.nick),birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str)}};
 function loadData(){let pl=[],nt=[];try{const d=JSON.parse(localStorage.getItem(KEY)||'null');pl=Array.isArray(d)?d:arr(d&&d.people);nt=arr(d&&d.notes)}catch(e){}try{const n=JSON.parse(localStorage.getItem(KEY+'.notes')||'null');if(Array.isArray(n))nt=n}catch(e){}return{people:pl.filter(x=>x&&x.id).map(normPerson),notes:nt.filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}))}}
@@ -76,19 +76,26 @@ function build(){const seen=new Set;
 const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h(p.name)}</span> <small>${life(p)}</small>`+ps.map(x=>` <small>⚭</small> <span class="n${x.id===selA?' sel':''}" data-id="${x.id}">${h(x.name)}</span>`).join('');
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
 const oline=(n,d)=>{const k=n.kids.length,open=!col.has(n.p.id);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.p.id}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1)).join(''):''}`};
-const TW=176,TH=72,TGX=28,TGY=56;
-function tlayout(forest){const nodes=[],edges=[],pos=new Map();let cursor=0,mx=0,md=0;
- const place=(n,depth)=>{md=Math.max(md,depth);const kx=n.kids.map(k=>place(k,depth+1));let x;if(!kx.length){x=cursor;cursor+=1}else x=(kx[0]+kx[kx.length-1])/2;
-  const o={px:x*(TW+TGX),py:depth*(TH+TGY)};pos.set(n,o);nodes.push(n);mx=Math.max(mx,x);n.kids.forEach(k=>edges.push([o,pos.get(k)]));return x};
- forest.forEach(r=>{place(r,0);cursor+=1});return {nodes,edges,pos,mx,md}}
+let TW=176,TH=72,TGX=28,TGY=56;
+const TGAP=30;
+function tlayout(forest){const nodes=[],edges=[],pos=new Map();let W=0,top=0;
+ forest.forEach(r=>{let cursor=0,mx=0,md=0;const start=nodes.length;
+  const place=(n,depth)=>{md=Math.max(md,depth);const kx=n.kids.map(k=>place(k,depth+1));let x;if(!kx.length){x=cursor;cursor+=1}else x=(kx[0]+kx[kx.length-1])/2;
+   const o={px:x*(TW+TGX),py:depth*(TH+TGY)};pos.set(n,o);nodes.push(n);mx=Math.max(mx,x);return x};
+  place(r,0);
+  for(let i=start;i<nodes.length;i++){const n=nodes[i],o=pos.get(n);o.py+=top;n.kids.forEach(k=>edges.push([o,pos.get(k)]))}
+  top+=(md+1)*(TH+TGY)+TGAP;W=Math.max(W,(mx+1)*(TW+TGX))});
+ return {nodes,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
 const tbox=(n,o,k)=>`<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px">${ava(n.p)}<div class="tline"><span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?`<small class="nk">“${h(n.p.nick)}”</small>`:''}<small>${life(n.p)}</small></div>${n.ps.map(x=>`<div class="tline"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?`<small class="nk">“${h(x.nick)}”</small>`:''}<small>${life(x)}</small></div>`).join('')}${k?`<button class="tex" data-exp="${n.p.id}">${col.has(n.p.id)?'▸':'▾'} ${k}</button>`:''}</div>`;
 function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if(tab=='notes'){notesView(m);return}
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
  if(tab=='tree'){const full=build(),kc=new Map(),walk=n=>{kc.set(n.p.id,n.kids.length);n.kids.forEach(walk)};full.forEach(walk);
-  const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?'Everyone is shown · tap a name for details · ▾ folds a branch':'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
+  const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?'Each family is drawn as a tree · tap a name for details · ▾ folds a branch':'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
   if(tv=='list'){m.innerHTML=bar+'<div class="tscroll">'+full.map(n=>oline(n,0)).join('')+'</div>';return}
-  const prune=n=>({p:n.p,ps:n.ps,kids:col.has(n.p.id)?[]:n.kids.map(prune)}),L=tlayout(full.map(prune)),W=Math.max(260,(L.mx+1)*(TW+TGX)+8),H=Math.max(140,(L.md+1)*(TH+TGY));
-  const avail=Math.max(200,(m.clientWidth||window.innerWidth||360)-26),use=sc==null?Math.max(.12,Math.min(1,avail/W)):sc;lastUse=use;
+  const avail=Math.max(200,(m.clientWidth||window.innerWidth||360)-26),narrow=avail<560;
+  TW=narrow?132:176;TGX=narrow?16:28;TH=narrow?66:72;TGY=narrow?46:56;
+  const prune=n=>({p:n.p,ps:n.ps,kids:col.has(n.p.id)?[]:n.kids.map(prune)}),L=tlayout(full.map(prune)),W=L.W,H=L.H;
+  const use=sc==null?Math.max(.12,Math.min(1,avail/W)):sc;lastUse=use;
   m.innerHTML=bar+`<div class="treescroll"><div class="treewrap" style="width:${Math.round(W*use)}px;height:${Math.round(H*use)}px"><div class="treeinner" style="width:${W}px;height:${H}px;transform:scale(${use});transform-origin:0 0"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+TH,x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.p.id)||0)).join('')}</div></div></div>`;return}
  const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
  m.innerHTML=a.map(p=>`<div class="card" data-id="${p.id}">${ava(p)}<span class="grow"><b>${h(p.name)}</b>${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}${p.parents.length?`<br><small>Child of ${p.parents.map(i=>{const q=M.get(i);return h(q?.name)+(q&&(q.birth||q.death)?' '+life(q):'')}).join(' & ')}</small>`:''}</span><small>${life(p)}</small><button class="eb" data-act="edit" data-pid="${p.id}" aria-label="Edit">✎</button></div>`).join('')||'<p class="m">No matches</p>'}

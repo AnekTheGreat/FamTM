@@ -9,24 +9,22 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
-## 2026-10-10 — The whole family on screen: Everyone view + a fitted Map
+## 2026-10-10 — The tree fits a phone and shows every branch
 
 ### Fixed
-- **Most of the family was off the side of the screen.** The Tree really did draw every
-  person, but it laid them out in one very wide canvas — a 23-person family measures
-  about **1640px** wide on a phone screen roughly **366px** wide, so only the first branch
-  was visible and everyone else (including relatives who joined by marriage) sat off to
-  the right. The Tree tab now has two views:
-  - **Everyone** *(default on phones)* — an indented outline of the whole family that
-    always fits the screen width, so there is no sideways scrolling. Every person and
-    every partner is listed, with **▾ / ▸** to fold a branch.
-  - **Map** — the box-and-connector diagram, now **auto-fitted to the screen** when it
-    opens, so the entire family fits at a glance. **Fit** returns to that full view and
-    **− / +** zoom in for reading detail.
+- **The tree is a tree again, and the whole family is in it.** The Tree was drawn on one
+  canvas about **4.5x wider than a phone screen**, so only the first branch was visible
+  and the rest — including relatives who joined by marriage — sat off to the right. Each
+  root family is now laid out on its own and **stacked vertically**, so the canvas is only
+  as wide as the widest family instead of the sum of all of them.
 
 ### Changed
-- Added an **Everyone / Map** switch at the top of the Tree tab. **Expand all** and
-  **Collapse** fold the branches in either view.
+- Boxes are sized for a phone on narrow screens (132x66 instead of 176x72), and the Tree
+  **auto-fits the remaining width** when it opens. A 23-person family now draws at about
+  **80% scale, all at once**, with nothing clipped and no overlapping boxes.
+- **Everyone** — an indented list of the whole family that never scrolls sideways — is
+  still one tap away beside **Map**. **Fit**, **−** and **+** zoom the Map, and
+  **Expand all** / **Collapse** fold branches in either view.
 
 ## 2026-10-10 — The tree always shows everyone
 
