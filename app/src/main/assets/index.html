@@ -26,6 +26,8 @@ dialog{border:0;border-radius:18px;padding:18px;width:min(560px,94vw);max-height
 details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(--line)}summary{padding:6px 0;cursor:pointer}.leaf{padding:6px 0 6px 10px}.n{font-weight:600;color:var(--acc)}main>details,main>.leaf{margin-left:0}
 #tt{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:9}#tt.on{opacity:1}
 .note{padding:12px 14px;margin:0 0 8px;background:var(--card);border:1px solid var(--line);border-radius:12px}.note div:first-child{white-space:pre-wrap}.cbar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.sel{background:var(--acc);color:var(--onacc);border-radius:6px;padding:1px 6px}textarea{resize:vertical}p{white-space:pre-wrap}
+.grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
+.nk{color:var(--mute);font-style:italic}.treescroll{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px}.treeinner{position:relative}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}
 </style></head><body>
 <div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
 <input id="sq" type="search" placeholder="Search people…" autocomplete="off"></div>
@@ -36,9 +38,11 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 <script>
 const $=s=>document.querySelector(s),KEY='familytree.v1',uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[];
-try{P=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}
-try{N=JSON.parse(localStorage.getItem(KEY+'.notes')||'[]')}catch(e){}
+let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=1;
+const str=x=>String(x??''),arr=x=>Array.isArray(x)?x:[];
+const normPerson=x=>{const o=x&&typeof x=='object'?x:{};return{id:str(o.id)||uid(),name:str(o.name),nick:str(o.nick),birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str)}};
+function loadData(){let pl=[],nt=[];try{const d=JSON.parse(localStorage.getItem(KEY)||'null');pl=Array.isArray(d)?d:arr(d&&d.people);nt=arr(d&&d.notes)}catch(e){}try{const n=JSON.parse(localStorage.getItem(KEY+'.notes')||'null');if(Array.isArray(n))nt=n}catch(e){}return{people:pl.filter(x=>x&&x.id).map(normPerson),notes:nt.filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}))}}
+{const d=loadData();P=d.people;N=d.notes}
 const yr=d=>d?d.slice(0,4):'',life=p=>p.birth||p.death?yr(p.birth)+'–'+yr(p.death):'';
 const sk=p=>(p.birth||'9999')+p.name,cmp=(a,b)=>sk(a)<sk(b)?-1:1;
 const fmt=d=>/^\d{4}-\d\d-\d\d$/.test(d)?new Date(d+'T00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):d;
@@ -49,10 +53,21 @@ const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m;
  if(m=v.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?$/))return +m[2]>=1&&+m[2]<=12?m[1]+'-'+pad2(m[2])+(m[3]?'-'+pad2(m[3]):''):null;
  if(m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))return +m[1]>=1&&+m[1]<=12&&+m[2]>=1&&+m[2]<=31?m[3]+'-'+pad2(m[1])+'-'+pad2(m[2]):null;
  return null};
+const shrink=(f,cb)=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const s=240,m=Math.min(s/i.width,s/i.height,1),cv=document.createElement('canvas');cv.width=Math.round(i.width*m)||s;cv.height=Math.round(i.height*m)||s;cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72))};i.src=r.result};r.readAsDataURL(f)};
+const ava=p=>p.photo?`<img class="av" src="${p.photo}" alt="">`:'';
 const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t.className='',2200)};
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
-function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say('Could not save – storage blocked')}index();render()}
+function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}index();render()}
 const desc=id=>{const s=new Set,st=[id];while(st.length)for(const c of C.get(st.pop())||[])if(!s.has(c.id)){s.add(c.id);st.push(c.id)}return s};
+const uniq=a=>[...new Set(a)],parIds=id=>(M.get(id)?.parents||[]),kidIds=id=>(C.get(id)||[]).map(x=>x.id);
+const byBirthId=(a,b)=>{const A=M.get(a),B=M.get(b);return A&&B?cmp(A,B):0};
+const sibIds=id=>uniq(parIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id).sort(byBirthId);
+const gpIds=id=>uniq(parIds(id).flatMap(i=>parIds(i)));
+const gcIds=id=>uniq(kidIds(id).flatMap(i=>kidIds(i)));
+const uncIds=id=>uniq(parIds(id).flatMap(i=>sibIds(i))).filter(x=>x!==id&&!parIds(id).includes(x));
+const nieIds=id=>uniq(sibIds(id).flatMap(i=>kidIds(i)));
+const couIds=id=>uniq(uncIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id&&!nieIds(id).includes(x)&&!sibIds(id).includes(x));
+const sibLink=(a,b)=>{if(a.parents.some(p=>b.parents.includes(p)))return '';const tryAdd=(s,d)=>{const p=s.parents.find(x=>d.parents.length<2&&!d.parents.includes(x)&&!desc(d.id).has(x)&&x!==d.id);return p?(d.parents.push(p),true):false};if(a.parents.length&&tryAdd(a,b))return '';if(b.parents.length&&tryAdd(b,a))return '';if(a.parents.length<2&&b.parents.length<2){const nid=uid(),u={id:nid,name:'Unknown',nick:'',birth:'',death:'',note:'',parents:[],partners:[]};P.push(u);a.parents.push(nid);b.parents.push(nid);return ''}return 'No room to add a shared parent'};
 function build(){const seen=new Set;
  const mk=p=>{seen.add(p.id);const ps=p.partners.map(i=>M.get(i)).filter(Boolean);ps.forEach(x=>x.parents.length||seen.add(x.id));
   const ch=[...new Set([p,...ps].flatMap(x=>C.get(x.id)||[]))].sort(cmp);
@@ -60,47 +75,61 @@ function build(){const seen=new Set;
  const out=[];P.filter(p=>!p.parents.length).sort(cmp).forEach(r=>seen.has(r.id)||out.push(mk(r)));P.forEach(p=>seen.has(p.id)||out.push(mk(p)));return out}
 const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h(p.name)}</span> <small>${life(p)}</small>`+ps.map(x=>` <small>⚭</small> <span class="n${x.id===selA?' sel':''}" data-id="${x.id}">${h(x.name)}</span>`).join('');
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
+const TW=176,TH=72,TGX=28,TGY=56;
+function tlayout(forest){const nodes=[],edges=[],pos=new Map();let cursor=0,mx=0,md=0;
+ const place=(n,depth)=>{md=Math.max(md,depth);const kx=n.kids.map(k=>place(k,depth+1));let x;if(!kx.length){x=cursor;cursor+=1}else x=(kx[0]+kx[kx.length-1])/2;
+  const o={px:x*(TW+TGX),py:depth*(TH+TGY)};pos.set(n,o);nodes.push(n);mx=Math.max(mx,x);n.kids.forEach(k=>edges.push([o,pos.get(k)]));return x};
+ forest.forEach(r=>{place(r,0);cursor+=1});return {nodes,edges,pos,mx,md}}
+const tbox=(n,o)=>`<div class="tnode${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${TW}px">${ava(n.p)}<div class="tline"><span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?`<small class="nk">“${h(n.p.nick)}”</small>`:''}<small>${life(n.p)}</small></div>${n.ps.map(x=>`<div class="tline"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?`<small class="nk">“${h(x.nick)}”</small>`:''}<small>${life(x)}</small></div>`).join('')}</div>`;
 function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if(tab=='notes'){notesView(m);return}
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
- if(tab=='tree'){m.innerHTML=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):'Link people as parent, child or partner'}</small></div>`+build().map(n=>html(n,0)).join('');return}
- const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
- m.innerHTML=a.map(p=>`<button class="card" data-id="${p.id}"><span><b>${h(p.name)}</b>${p.parents.length?`<br><small>Child of ${p.parents.map(i=>h(M.get(i)?.name)).join(' & ')}</small>`:''}</span><small>${life(p)}</small></button>`).join('')||'<p class="m">No matches</p>'}
+ if(tab=='tree'){const forest=build(),L=tlayout(forest),W=Math.max(260,(L.mx+1)*(TW+TGX)+8),H=Math.max(140,(L.md+1)*(TH+TGY));
+  m.innerHTML=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):'Tap anyone to open · link people as parent, child, partner, sibling or grandparent'}</small></div><div class="treescroll"><div class="treewrap" style="width:${Math.round(W*sc)}px;height:${Math.round(H*sc)}px"><div class="treeinner" style="width:${W}px;height:${H}px;transform:scale(${sc});transform-origin:0 0"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+TH,x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n))).join('')}</div></div></div>`;return}
+ const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
+ m.innerHTML=a.map(p=>`<div class="card" data-id="${p.id}">${ava(p)}<span class="grow"><b>${h(p.name)}</b>${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}${p.parents.length?`<br><small>Child of ${p.parents.map(i=>{const q=M.get(i);return h(q?.name)+(q&&(q.birth||q.death)?' '+life(q):'')}).join(' & ')}</small>`:''}</span><small>${life(p)}</small><button class="eb" data-act="edit" data-pid="${p.id}" aria-label="Edit">✎</button></div>`).join('')||'<p class="m">No matches</p>'}
 const show=t=>{const d=$('#dlg');d.innerHTML=t;d.open||d.showModal();d.scrollTop=0};
 const chip=x=>`<button class="chip" data-go="${x.id}">${h(x.name)} <small>${life(x)}</small></button>`;
-function detail(id){const p=M.get(id);if(!p)return;const sec=(t,a)=>a.length?`<h3>${t}</h3>${a.map(chip).join('')}`:'';
- const sib=[...new Set(p.parents.flatMap(i=>C.get(i)||[]))].filter(x=>x.id!==id),pid=`data-pid="${id}"`;
- show(`<h2>${h(p.name)}</h2><p class="m">${[p.birth&&'Born '+fmt(p.birth),p.death&&'Died '+fmt(p.death),age(p)].filter(Boolean).join(' · ')||'No dates'}</p>${p.note?`<p>${h(p.note)}</p>`:''}${sec('Parents',p.parents.map(i=>M.get(i)).filter(Boolean))}${sec('Partners',p.partners.map(i=>M.get(i)).filter(Boolean))}${sec('Children',C.get(id)||[])}${sec('Siblings',sib)}
- <h3>Add relative</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button>
+function detail(id){const p=M.get(id);if(!p)return;const sec=(t,a)=>a.length?`<h3>${t}</h3>${a.map(chip).join('')}`:'';const pp=a=>[...new Set(a)].map(i=>M.get(i)).filter(Boolean),pid=`data-pid="${id}"`;
+ show(`${p.photo?`<img class="av lg" src="${p.photo}" alt="">`:''}<h2>${h(p.name)}${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}</h2><p class="m">${[p.birth&&'Born '+fmt(p.birth),p.death&&'Died '+fmt(p.death),age(p)].filter(Boolean).join(' · ')||'No dates'}</p>${p.note?`<p>${h(p.note)}</p>`:''}${sec('Parents',pp(p.parents))}${sec('Partners',pp(p.partners))}${sec('Children',pp(kidIds(id)))}${sec('Siblings',pp(sibIds(id)))}${sec('Grandparents',pp(gpIds(id)))}${sec('Grandchildren',pp(gcIds(id)))}${sec('Aunts & Uncles',pp(uncIds(id)))}${sec('Nieces & Nephews',pp(nieIds(id)))}${sec('Cousins',pp(couIds(id)))}
+ <h3>Add relative</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button><button class="chip" data-act="addsib" ${pid}>+ Brother / Sister</button>
  <div class="bar"><span></span><button class="btn" data-act="edit" ${pid}>Edit</button><button class="btn p" data-act="close">Done</button></div>`)}
 function picker(ex,cb){const k=$('#pick');k.innerHTML='<input id="ps" placeholder="Search by name…" autocomplete="off"><div id="pl" style="margin-top:10px"></div><div class="bar"><span></span><button class="btn" id="pc">Cancel</button></div>';
- const go=()=>{const s=$('#ps').value.toLowerCase(),a=P.filter(p=>!ex.has(p.id)&&p.name.toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
+ const go=()=>{const s=$('#ps').value.toLowerCase(),a=P.filter(p=>!ex.has(p.id)&&(p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s))).sort((a,b)=>a.name.localeCompare(b.name));
   $('#pl').innerHTML=a.slice(0,50).map(x=>`<button class="card" data-p="${x.id}"><b>${h(x.name)}</b><small>${life(x)}</small></button>`).join('')+(a.length>50?`<p class="m">${a.length-50} more – keep typing</p>`:a.length?'':'<p class="m">No matches</p>')};
  $('#ps').oninput=go;$('#pl').onclick=e=>{const b=e.target.closest('[data-p]');if(b){k.close();cb(b.dataset.p)}};$('#pc').onclick=()=>k.close();go();k.showModal()}
 function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',note:'',parents:[],partners:[],...pre.f},st={par:[...p.parents],prt:[...p.partners]};
- show(`<h2>${e?'Edit person':'Add person'}</h2><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label>
+ show(`<h2>${e?'Edit person':'Add person'}</h2><div class="g2"><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label><label>Nickname<input id="fk" value="${h(p.nick)}" placeholder="optional" autocomplete="off"></label></div>
  <div class="g2"><label>Born<input id="fb" value="${h(p.birth)}" placeholder="MM/DD/YYYY or YYYY-MM-DD"></label><label>Died<input id="fd" value="${h(p.death)}" placeholder="blank if living"></label></div>
- <label>Notes<textarea id="fo" rows="2">${h(p.note)}</textarea></label><h3>Parents</h3><div id="rp"></div><h3>Partners</h3><div id="rt"></div><p class="er" id="er"></p>
- <div class="bar">${e?'<button class="btn d" id="fx">Delete</button>':''}<span></span><button class="btn" id="fc">Cancel</button><button class="btn p" id="fs">Save</button></div>`);
+ <label>Notes<textarea id="fo" rows="2">${h(p.note)}</textarea></label>
+ <h3>Photo</h3><div class="phr"><span id="pv">${p.photo?`<img class="av" src="${p.photo}" alt="">`:''}</span><button class="btn" id="fp" type="button">${p.photo?'Change':'Add photo'}</button><button class="btn d" id="fr" type="button"${p.photo?'':' hidden'}>Remove</button></div><input type="file" id="ff" accept="image/*" hidden>
+ <h3>Parents</h3><div id="rp"></div><h3>Partners</h3><div id="rt"></div><p class="er" id="er"></p>
+ <div class="bar">${e?'<button class="btn d" id="fx">Delete</button>':''}<span></span><button class="btn" id="fc">Cancel</button>${e?'':'<button class="btn" id="fna">Save & another</button>'}<button class="btn p" id="fs">Save</button></div>`);
+ $('#fn').focus();$('#dlg').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target)return;const t=ev.target;if(t.tagName=='TEXTAREA'||t.type=='file')return;const s=$('#fs');if(s){ev.preventDefault();s.click()}};
  const draw=()=>{const c=(a,k)=>a.map(i=>`<span class="chip">${h(M.get(i)?.name)} <button class="x" data-rm="${k}:${i}">×</button></span>`).join('');
   $('#rp').innerHTML=c(st.par,'par')+(st.par.length<2?'<button class="chip" data-add="par">+ Add parent</button>':'');$('#rt').innerHTML=c(st.prt,'prt')+'<button class="chip" data-add="prt">+ Add partner</button>'};
  const rel=ev=>{const d=ev.target.dataset;if(d.rm){const[k,i]=d.rm.split(':');st[k]=st[k].filter(x=>x!==i);draw()}
   else if(d.add)picker(new Set([id,...st[d.add],...(d.add=='par'?desc(id):[])]),i=>{st[d.add].push(i);draw()})};
  $('#rp').onclick=rel;$('#rt').onclick=rel;draw();$('#fc').onclick=()=>e?detail(id):$('#dlg').close();
+ let ph=p.photo||'';const pv=()=>{$('#pv').innerHTML=ph?`<img class="av" src="${ph}" alt="">`:'';$('#fp').textContent=ph?'Change':'Add photo';$('#fr').hidden=!ph};
+ $('#fp').onclick=()=>$('#ff').click();$('#fr').onclick=()=>{ph='';pv()};
+ $('#ff').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(f)shrink(f,d=>{ph=d;pv()})};
  if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id)});commit()})};
- $('#fs').onclick=()=>{const name=$('#fn').value.trim(),b=normDate($('#fb').value),d=normDate($('#fd').value);
+ const doSave=again=>{const name=$('#fn').value.trim(),b=normDate($('#fb').value),d=normDate($('#fd').value);
   const bad=!name?'Name is required.':b===null||d===null?'Dates must be YYYY, YYYY-MM, YYYY-MM-DD or MM/DD/YYYY.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
   if(bad){$('#er').textContent=bad;return}
-  const o=e||{id:uid()};Object.assign(o,{name,birth:b,death:d,note:$('#fo').value.trim(),parents:st.par,partners:st.prt});if(!e)P.push(o);
+  const o=e||{id:uid()};Object.assign(o,{name,nick:$('#fk').value.trim(),birth:b,death:d,note:$('#fo').value.trim(),parents:st.par,partners:st.prt});if(ph)o.photo=ph;else delete o.photo;if(!e)P.push(o);
+  if(pre.sib&&M.get(pre.sib)){const er=sibLink(M.get(pre.sib),o);if(er)say(er)}
   P.forEach(x=>{if(x===o)return;const has=x.partners.includes(o.id),want=st.prt.includes(x.id);if(want&&!has)x.partners.push(o.id);if(!want&&has)x.partners=x.partners.filter(i=>i!==o.id)});
   const c=pre.child&&M.get(pre.child);if(c&&c.parents.length<2&&!c.parents.includes(o.id))c.parents.push(o.id);
-  if(pre.fromNote)N=N.filter(n=>n.id!==pre.fromNote);commit();detail(o.id)}}
+  if(pre.fromNote)N=N.filter(n=>n.id!==pre.fromNote);commit();if(again)form();else detail(o.id)};
+ $('#fs').onclick=()=>doSave(false);if(!e)$('#fna').onclick=()=>doSave(true)}
 const dl=(blob,n)=>{if(window.Android){const r=new FileReader();r.onload=()=>Android.save(n,String(r.result).split(',')[1]);r.readAsDataURL(blob);return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=n;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4e3)};
 const esc=s=>String(s).replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e\xa0-\xff]/g,'?').replace(/[\\()]/g,'\\$&');
 function pdf(){if(!P.length)return say('Nothing to export');
  const W=595,H=842,mg=44,pg=[];let cur=[],y=H-mg;const chk=()=>{if(y<mg+10){pg.push(cur);cur=[];y=H-mg}},T=(t,x,s=10,b=0)=>cur.push({t:esc(t),x,y,s,b});
  const walk=(n,d)=>{chk();const x=mg+Math.min(d,24)*14,nm=n.p.name+n.ps.map(z=>' & '+z.name).join(''),l=life(n.p);T(nm,x,10,1);l&&T(l,x+Math.min(nm.length,60)*5.9+8,9);y-=15;n.kids.forEach(k=>walk(k,d+1))};
  T('Family Tree',mg,22,1);y-=24;T(P.length+' people  -  '+new Date().toLocaleDateString(),mg,9);y-=26;T('Descendant tree',mg,13,1);y-=20;build().forEach(n=>walk(n,0));
- y-=14;chk();T('Everyone (A-Z)',mg,13,1);y-=20;[...P].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{chk();T(p.name,mg,9);T((p.birth?'b. '+p.birth:'')+(p.death?'    d. '+p.death:''),mg+300,9);y-=13});
+ y-=14;chk();T('Everyone (A-Z)',mg,13,1);y-=20;[...P].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{chk();T(p.name+(p.nick?' ('+p.nick+')':''),mg,9);T((p.birth?'b. '+p.birth:'')+(p.death?'    d. '+p.death:''),mg+300,9);y-=13});
  pg.push(cur);pg.forEach((c,i)=>c.push({t:`Page ${i+1} of ${pg.length}`,x:W/2-30,y:24,s:8,b:0}));
  const o=[];o[1]='<</Type/Catalog/Pages 2 0 R>>';o[2]=`<</Type/Pages/Kids[${pg.map((_,i)=>`${6+2*i} 0 R`).join(' ')}]/Count ${pg.length}>>`;
  o[3]='<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>';o[4]=o[3].replace('Helvetica','Helvetica-Bold');
@@ -112,7 +141,7 @@ function pdf(){if(!P.length)return say('Nothing to export');
 function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn d" data-act="wipe">Delete everything</button><button class="btn" data-act="close">Close</button></div>`)}
 function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);
  ({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
- addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:2,people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
+ addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),zin:()=>{sc=Math.min(2.5,sc+.2);render()},zout:()=>{sc=Math.max(.4,sc-.2);render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
  restore:()=>$('#file').click(),wipe:()=>ask('Delete ALL people and notes? Back up first.',()=>{P=[];N=[];commit()})})[a]()}
 const syncNav=()=>document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 function ask(msg,yes){onYes=yes;show(`<h2>Are you sure?</h2><p>${h(msg)}</p><div class="bar"><span></span><button class="btn" data-act="close">Cancel</button><button class="btn d" data-act="yes">Yes</button></div>`)}
@@ -120,8 +149,9 @@ function doYes(){const f=onYes;onYes=null;$('#dlg').close();f&&f()}
 function toggleConn(){conn=!conn;selA=null;render()}
 const parseNote=t=>{const L=t.trim(),g=r=>{const m=L.match(r);return m?normDate(m[1])||m[1]:''},d='(\\d{4}(?:-\\d\\d?(?:-\\d\\d?)?)?|\\d{1,2}/\\d{1,2}/\\d{4})';
  const nm=L.split(/\s[-–—]\s|[,;:(]|\b(?:b|d|born|died)\b\.?\s*\d|\d{4}/i)[0].trim()||L.slice(0,40);
- return{name:nm.slice(0,60),birth:g(new RegExp('\\b(?:b\\.?|born)\\s*'+d,'i')),death:g(new RegExp('\\b(?:d\\.?|died)\\s*'+d,'i')),note:L}};
-const mkP=o=>{P.push({id:uid(),name:o.name,birth:o.birth,death:o.death,note:o.note,parents:[],partners:[]})};
+ const q=(nm.match(/[“"]([^”"]{1,40})[”"]/)||[])[1]||'';
+ return{name:(q?nm.replace(/[“"][^”"]*[”"]/,'').replace(/\s+/g,' ').trim():nm).slice(0,60),nick:q,birth:g(new RegExp('\\b(?:b\\.?|born)\\s*'+d,'i')),death:g(new RegExp('\\b(?:d\\.?|died)\\s*'+d,'i')),note:L}};
+const mkP=o=>{P.push({id:uid(),name:o.name,nick:o.nick||'',birth:o.birth,death:o.death,note:o.note,parents:[],partners:[]})};
 function notesView(m){m.innerHTML=`<textarea id="nt" rows="4" placeholder="Drop notes here, one per line. For example:&#10;Mary Smith b. 1950, John's wife&#10;Jane Doe b. 01/13/1985"></textarea><div class="bar"><small>${N.length} note${N.length==1?'':'s'}</small><span></span>${N.length?'<button class="btn" data-act="allp">Make people from all</button>':''}<button class="btn p" data-act="addn">Add</button></div><div style="height:12px"></div>`+N.map(n=>`<div class="note"><div>${h(n.t)}</div><div style="margin-top:8px"><button class="chip" data-act="n2p" data-nid="${n.id}">Make person</button><button class="chip" data-act="n2a" data-nid="${n.id}">Attach to…</button><button class="chip" data-act="ndel" data-nid="${n.id}">Delete</button></div></div>`).join('')}
 function addN(){const v=$('#nt').value.split('\n').map(s=>s.trim()).filter(Boolean);if(!v.length)return say('Type a note first');N.unshift(...v.map(t=>({id:uid(),t})));commit();say('Added '+v.length)}
 function allP(){const k=N.length;N.forEach(n=>mkP(parseNote(n.t)));N=[];tab='tree';conn=true;selA=null;syncNav();commit();say('Made '+k+' people – tap two to connect them')}
@@ -130,17 +160,21 @@ function n2a(id){const n=N.find(x=>x.id===id);if(!n)return;picker(new Set(),pid=
 function pickNode(id){if(!selA||!M.get(selA)){selA=id;render();return}
  if(selA===id){selA=null;render();return}
  selB=id;const a=M.get(selA),b=M.get(id);
- show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-act="close">Cancel</button></div>`)}
+ show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-rel="sb">They are siblings</button><button class="btn" data-rel="gp">${h(a.name)} is a grandparent of ${h(b.name)}</button><button class="btn" data-rel="gc">${h(a.name)} is a grandchild of ${h(b.name)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
 function link(t){const a=M.get(selA),b=M.get(selB);if(!a||!b)return;let err='';
  const par=(c,p)=>c.id===p.id?'Same person':c.parents.includes(p.id)?'Already linked':c.parents.length>=2?c.name+' already has 2 parents':desc(c.id).has(p.id)?'That would make a loop':(c.parents.push(p.id),'');
- if(t=='pa')err=par(b,a);else if(t=='ch')err=par(a,b);else if(a.partners.includes(b.id))err='Already partners';else{a.partners.push(b.id);b.partners.push(a.id)}
+ const gpar=(g,c)=>{if(!parIds(c.id).length)return c.name+' needs a parent first';if(parIds(c.id).some(p=>M.get(p)?.parents.includes(g.id)))return 'Already linked';const free=parIds(c.id).find(p=>p!==g.id&&(M.get(p)?.parents.length||0)<2&&!desc(p).has(g.id));return free?(M.get(free).parents.push(g.id),''):'Can’t add – their parents are full'};
+ if(t=='pa')err=par(b,a);else if(t=='ch')err=par(a,b);else if(t=='pt'){if(a.partners.includes(b.id))err='Already partners';else{a.partners.push(b.id);b.partners.push(a.id)}}
+ else if(t=='sb')err=sibLink(a,b);
+ else if(t=='gp')err=gpar(a,b);else if(t=='gc')err=gpar(b,a);
  $('#dlg').close();selA=selB=null;if(err){say(err);render();return}commit();say('Connected')}
 document.onclick=e=>{const el=e.target.closest('[data-id],[data-go],[data-act],[data-t],[data-rel]');if(!el)return;const d=el.dataset;
  if(d.id||d.go){e.preventDefault();if(conn&&tab=='tree'&&d.id)pickNode(d.id);else detail(d.id||d.go)}
  else if(d.rel)link(d.rel);else if(d.t){tab=d.t;conn=false;selA=null;syncNav();render()}else act(d.act,d)};
 $('#mn').onclick=menu;$('#sq').oninput=e=>{qs=e.target.value;if(tab!='people'){tab='people';conn=false;syncNav()}render()};
-$('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const a0=JSON.parse(await f.text()),a=Array.isArray(a0)?a0:a0.people;if(!Array.isArray(a))throw 0;const nn=(Array.isArray(a0.notes)?a0.notes:[]).filter(x=>x&&x.t).map(x=>({id:String(x.id||uid()),t:String(x.t)}));
- const s=x=>String(x??''),n=a.filter(x=>x&&x.id&&x.name).map(x=>({id:s(x.id),name:s(x.name),birth:s(x.birth),death:s(x.death),note:s(x.note),parents:(x.parents||[]).map(s),partners:(x.partners||[]).map(s)})),ids=new Set(n.map(x=>x.id));
+$('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const a0=JSON.parse(await f.text()),a=Array.isArray(a0)?a0:(a0&&a0.people);if(!Array.isArray(a))throw 0;
+ const nn=(Array.isArray(a0&&a0.notes)?a0.notes:[]).filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}));
+ const n=a.filter(x=>x&&x.name).map(normPerson),ids=new Set(n.map(x=>x.id));
  n.forEach(x=>{x.parents=x.parents.filter(i=>ids.has(i)).slice(0,2);x.partners=x.partners.filter(i=>ids.has(i))});
  ask(`Replace everything with ${n.length} people from this backup?`,()=>{P=n;N=nn;commit();say('Restored '+n.length+' people')})}catch(err){say('Not a valid backup file')}};
 index();render();
