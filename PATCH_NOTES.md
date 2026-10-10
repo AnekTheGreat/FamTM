@@ -9,6 +9,16 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — Room to breathe in the tree boxes
+
+### Changed
+- **A couple's names no longer sit side by side and touch.** Each person in a box now gets
+  their **own line** inside it, with their dates beside the name, so two names can never
+  collide. Every box declares the same width **and** height, so boxes always line up evenly
+  and can never creep into each other.
+- Roomier, more even spacing: column gap 22px (was 16) and row pitch 136px (was 112) on a
+  phone, with 44px between one family block and the next.
+
 ## 2026-10-10 — Related families are one tree, plus a ⟳ update button
 
 ### Added
