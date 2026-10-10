@@ -9,6 +9,37 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — The tree opens readable instead of shrunk to a speck
+
+### Changed
+- The tree used to open zoomed all the way out so every box fitted, which made the names too
+  small to read once the family grew. It now opens at a **readable size** (never below 78%)
+  and you **drag** to the rest — **Fit** still shows the whole family at once.
+- **Zoomed out, the clutter is hidden.** Below 90% zoom the boxes show **names only**, with
+  the dates and nicknames dropped and the names drawn slightly larger, so the wide view stays
+  legible. Zoom in and the dates come back.
+- Boxes are a little narrower and taller on a phone (122×84) so more of the family fits per
+  screen.
+
+Measured on a 23-person family whose two sides are joined by a marriage: names now draw at
+about **10px** instead of **5.6px**, with around two thirds of the tree on screen when it
+opens and the rest one drag away.
+
+## 2026-10-10 — Link people you already added
+
+### Added
+- Someone's card now has a **Link someone already added** section: **Pick a parent / partner /
+  child / brother or sister / grandparent / grandchild**, then choose the person from a
+  searchable list. No new person is created and nothing is typed twice — the relationship is
+  made between two people you already have.
+- The card and the tree update immediately afterwards.
+
+### Changed
+- The old create-new-person chips now sit under a clear **Add a new person** heading, so it is
+  obvious which row adds someone and which one links someone.
+- Verified the usual guards still hold when linking: no loops, no self-links, no third parent,
+  no duplicate links — each is refused with a message instead of quietly duplicating.
+
 ## 2026-10-10 — Drag the tree, pinch to zoom
 
 ### Added

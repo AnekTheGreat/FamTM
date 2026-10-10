@@ -27,7 +27,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 #tt{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:9}#tt.on{opacity:1}
 .note{padding:12px 14px;margin:0 0 8px;background:var(--card);border:1px solid var(--line);border-radius:12px}.note div:first-child{white-space:pre-wrap}.cbar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.sel{background:var(--acc);color:var(--onacc);border-radius:6px;padding:1px 6px}textarea{resize:vertical}p{white-space:pre-wrap}
 .grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
-.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;min-width:0;overflow:hidden}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
+.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:column;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;min-width:0;overflow:hidden}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
 </style></head><body>
 <div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="rf" class="ib" aria-label="Check for update">⟳</button><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
 <input id="sq" type="search" placeholder="Search people…" autocomplete="off"></div>
@@ -38,7 +38,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 <script>
 const $=s=>document.querySelector(s),KEY='familytree.v1',uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,tx=null,ty=null,col=new Set(),gW=0,gH=0,tv='map';
+let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,tx=null,ty=null,col=new Set(),gW=0,gH=0,firstMap=1,tv='map';
 const str=x=>String(x??''),arr=x=>Array.isArray(x)?x:[];
 const normPerson=x=>{const o=x&&typeof x=='object'?x:{};return{id:str(o.id)||uid(),name:str(o.name),nick:str(o.nick),birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str)}};
 function loadData(){let pl=[],nt=[];try{const d=JSON.parse(localStorage.getItem(KEY)||'null');pl=Array.isArray(d)?d:arr(d&&d.people);nt=arr(d&&d.notes)}catch(e){}try{const n=JSON.parse(localStorage.getItem(KEY+'.notes')||'null');if(Array.isArray(n))nt=n}catch(e){}return{people:pl.filter(x=>x&&x.id).map(normPerson),notes:nt.filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}))}}
@@ -111,12 +111,13 @@ function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
  if(tab=='tree'){const full=build(),kc=new Map();full.forEach(n=>kc.set(n.r,n.kids.length));
   const avail=Math.max(200,(m.clientWidth||window.innerWidth||360)-26),narrow=avail<560;
-  TW=narrow?132:176;TGX=narrow?22:30;TH=narrow?78:78;TGY=narrow?58:60;
+  TW=narrow?122:176;TGX=narrow?18:30;TH=narrow?84:84;TGY=narrow?58:60;
   const hide=new Set();
   for(let go=1;go;){go=0;full.forEach(n=>{if(col.has(n.r)||hide.has(n.r))n.kids.forEach(k=>{if(!hide.has(k.r)){hide.add(k.r);go=1}})})}
   const L=tlayout(full.filter(n=>!hide.has(n.r))),W=L.W,H=L.H;
-  if(sc==null)sc=Math.max(.12,Math.min(1,(avail-4)/W));
-  const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?(sc<.62?'Whole family is shown · drag or + to read names · ▾ folds a branch':'Drag to move · pinch or − / + to zoom · ▾ folds a branch'):'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
+  if(sc==null)sc=(firstMap?Math.max(.78,Math.min(1,(avail-4)/W)):Math.max(.12,Math.min(1,(avail-4)/W)));
+  firstMap=0;
+  const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?(sc<.95?'Drag to move · pinch or − / + to zoom · Fit shows everyone · ▾ folds a branch':'Drag to move · pinch or − / + to zoom · ▾ folds a branch'):'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
   if(tv=='list'){const ss=new Set(),order=full.filter(n=>!n.pr.length).concat(full);m.innerHTML=bar+'<div class="tscroll">'+order.map(n=>oline(n,0,ss)).join('')+'</div>';return}
   m.innerHTML=bar+`<div class="treescroll" id="tv"><div class="treeinner" id="ti" style="width:${W}px;height:${H}px"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(([a,b])=>{const x1=a.px+TW/2,y1=a.py+TH,x2=b.px+TW/2,y2=b.py,my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div>`;
   if(tx==null||ty==null){tx=Math.max(0,($('#tv').clientWidth-W*sc)/2);ty=Math.max(0,($('#tv').clientHeight-H*sc)/2)}
@@ -127,7 +128,8 @@ const show=t=>{const d=$('#dlg');d.innerHTML=t;d.open||d.showModal();d.scrollTop
 const chip=x=>`<button class="chip" data-go="${x.id}">${h(x.name)} <small>${life(x)}</small></button>`;
 function detail(id){const p=M.get(id);if(!p)return;const sec=(t,a)=>a.length?`<h3>${t}</h3>${a.map(chip).join('')}`:'';const pp=a=>[...new Set(a)].map(i=>M.get(i)).filter(Boolean),pid=`data-pid="${id}"`;
  show(`${p.photo?`<img class="av lg" src="${p.photo}" alt="">`:''}<h2>${h(p.name)}${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}</h2><p class="m">${[p.birth&&'Born '+fmt(p.birth),p.death&&'Died '+fmt(p.death),age(p)].filter(Boolean).join(' · ')||'No dates'}</p>${p.note?`<p>${h(p.note)}</p>`:''}${sec('Parents',pp(p.parents))}${sec('Partners',pp(p.partners))}${sec('Children',pp(kidIds(id)))}${sec('Siblings',pp(sibIds(id)))}${sec('Grandparents',pp(gpIds(id)))}${sec('Grandchildren',pp(gcIds(id)))}${sec('Aunts & Uncles',pp(uncIds(id)))}${sec('Nieces & Nephews',pp(nieIds(id)))}${sec('Cousins',pp(couIds(id)))}
- <h3>Add relative</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button><button class="chip" data-act="addsib" ${pid}>+ Brother / Sister</button>
+ <h3>Add a new person</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button><button class="chip" data-act="addsib" ${pid}>+ Brother / Sister</button>
+ <h3>Link someone already added</h3>${p.parents.length<2?`<button class="chip" data-link="par" ${pid}>Pick a parent</button>`:''}<button class="chip" data-link="prt" ${pid}>Pick a partner</button><button class="chip" data-link="kid" ${pid}>Pick a child</button><button class="chip" data-link="sib" ${pid}>Pick a brother / sister</button><button class="chip" data-link="gp" ${pid}>Pick a grandparent</button><button class="chip" data-link="gc" ${pid}>Pick a grandchild</button>
  <div class="bar"><span></span><button class="btn" data-act="edit" ${pid}>Edit</button><button class="btn p" data-act="close">Done</button></div>`)}
 function picker(ex,cb){const k=$('#pick');k.innerHTML='<input id="ps" placeholder="Search by name…" autocomplete="off"><div id="pl" style="margin-top:10px"></div><div class="bar"><span></span><button class="btn" id="pc">Cancel</button></div>';
  const go=()=>{const s=$('#ps').value.toLowerCase(),a=P.filter(p=>!ex.has(p.id)&&(p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s))).sort((a,b)=>a.name.localeCompare(b.name));
@@ -178,7 +180,7 @@ function pdf(){if(!P.length)return say('Nothing to export');
  dl(new Blob([Uint8Array.from(f,c=>c.charCodeAt(0))],{type:'application/pdf'}),'family-tree.pdf');say('PDF exported')}
 const clampView=vp=>{const w=vp.clientWidth,h=vp.clientHeight,cw=gW*sc,ch=gH*sc;
  tx=cw<=w?(w-cw)/2:Math.min(0,Math.max(w-cw,tx));ty=ch<=h?(h-ch)/2:Math.min(0,Math.max(h-ch,ty))};
-const applyView=ti=>{ti.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'};
+const applyView=ti=>{ti.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')';ti.classList.toggle('zo',sc<.9)};
 function zoomBy(f){const vp=$('#tv');if(!vp)return;const w=vp.clientWidth,h=vp.clientHeight,ox=(w/2-tx)/sc,oy=(h/2-ty)/sc;
  sc=Math.max(.12,Math.min(3,sc*f));tx=w/2-ox*sc;ty=h/2-oy*sc;render()}
 function panzoom(vp,ti){const pts=new Map();let base=null,moved=false;
@@ -227,15 +229,24 @@ function pickNode(id){if(!selA||!M.get(selA)){selA=id;render();return}
  if(selA===id){selA=null;render();return}
  selB=id;const a=M.get(selA),b=M.get(id);
  show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-rel="sb">They are siblings</button><button class="btn" data-rel="gp">${h(a.name)} is a grandparent of ${h(b.name)}</button><button class="btn" data-rel="gc">${h(a.name)} is a grandchild of ${h(b.name)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
-function link(t){const a=M.get(selA),b=M.get(selB);if(!a||!b)return;let err='';
+function applyLink(a,b,t){if(!a||!b)return 'Pick two different people';let err='';
  const par=(c,p)=>c.id===p.id?'Same person':c.parents.includes(p.id)?'Already linked':c.parents.length>=2?c.name+' already has 2 parents':desc(c.id).has(p.id)?'That would make a loop':(c.parents.push(p.id),'');
  const gpar=(g,c)=>{if(!parIds(c.id).length)return c.name+' needs a parent first';if(parIds(c.id).some(p=>M.get(p)?.parents.includes(g.id)))return 'Already linked';const free=parIds(c.id).find(p=>p!==g.id&&(M.get(p)?.parents.length||0)<2&&!desc(p).has(g.id));return free?(M.get(free).parents.push(g.id),''):'Can’t add – their parents are full'};
  if(t=='pa')err=par(b,a);else if(t=='ch')err=par(a,b);else if(t=='pt'){if(a.partners.includes(b.id))err='Already partners';else{a.partners.push(b.id);b.partners.push(a.id)}}
  else if(t=='sb')err=sibLink(a,b);
  else if(t=='gp')err=gpar(a,b);else if(t=='gc')err=gpar(b,a);
+ return err}
+// from someone's card: pick a person you already added and say what they are to you
+const REL={par:'pa',kid:'ch',prt:'pt',sib:'sb',gp:'gp',gc:'gc'};
+function linkPick(rel,id){const t=REL[rel],p=M.get(id);if(!p||!t)return;
+ const ex=new Set([id,...((rel=='par'||rel=='kid'||rel=='gp')?desc(id):[])]);
+ picker(ex,oid=>{const err=applyLink(M.get(oid),M.get(id),t);
+  if(err){say(err);return}commit();detail(id);say('Linked '+M.get(oid).name)})}
+function link(t){const a=M.get(selA),b=M.get(selB);if(!a||!b)return;const err=applyLink(a,b,t);
  $('#dlg').close();selA=selB=null;if(err){say(err);render();return}commit();say('Connected')}
-document.onclick=e=>{const el=e.target.closest('[data-id],[data-go],[data-act],[data-t],[data-rel],[data-exp]');if(!el)return;const d=el.dataset;
+document.onclick=e=>{const el=e.target.closest('[data-id],[data-go],[data-act],[data-t],[data-rel],[data-exp],[data-link]');if(!el)return;const d=el.dataset;
  if(d.exp){e.preventDefault();col.has(d.exp)?col.delete(d.exp):col.add(d.exp);render();return}
+ if(d.link){e.preventDefault();linkPick(d.link,d.pid);return}
  if(d.id||d.go){e.preventDefault();if(conn&&tab=='tree'&&d.id)pickNode(d.id);else detail(d.id||d.go)}
  else if(d.rel)link(d.rel);else if(d.t){tab=d.t;conn=false;selA=null;syncNav();render()}else act(d.act,d)};
 $('#mn').onclick=menu;$('#rf').onclick=refresh;$('#sq').oninput=e=>{qs=e.target.value;if(tab!='people'){tab='people';conn=false;syncNav()}render()};
