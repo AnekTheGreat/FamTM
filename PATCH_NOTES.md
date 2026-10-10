@@ -9,6 +9,32 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — The tree always shows everyone
+
+### Fixed
+- **Everyone is visible in the Tree again.** The Tree was opening folded, so only the
+  top-level people were drawn and most of the family (brothers, sisters, cousins) looked
+  missing. The Tree now opens **fully expanded**, so every person in your tree is on
+  screen — including people who are only linked as someone's partner, and anyone whose
+  parent isn't recorded. Folding is still available, but only when you ask for it.
+
+### Changed
+- The **▾ / ▸** toggle now starts at ▾ (open); **Collapse** folds the whole tree and
+  **Expand all** opens it again.
+
+## 2026-10-10 — Easier relationships & a calmer tree
+
+### Added
+- **Children in the edit screen.** The Add/Edit person screen now has Parents,
+  Partners **and Children**, so a person's whole immediate family can be set up in one
+  go. Removing a child unlinks it from that person.
+- **Expand all / Collapse** buttons on the Tree, plus a per-person ▸ / ▾ toggle that
+  shows how many people are hidden under it.
+
+### Changed
+- ~~**The Tree opens collapsed.**~~ Superseded: the Tree now opens expanded so everyone
+  is visible. See the entry above.
+
 ## 2026-10-10 — Faster entry, version-safe saves & a clearer tree
 
 ### Added
@@ -20,8 +46,7 @@ in any version re-imports into any other.
 ### Changed
 - The Add/Edit screen is tidier — Name / Nickname, then Born / Died, then Notes, with
   the photo picker moved below — so adding someone takes fewer taps.
-- The Tree shows **both** people in a couple with their years (before, only the first
-  person's dates were shown).
+- The Tree shows **both** people in a couple with their years.
 - The People list shows both parents with their years, e.g. `Child of Sam 1950– & Ada 1948–`.
 - **Siblings are listed oldest to youngest.**
 
@@ -33,46 +58,24 @@ in any version re-imports into any other.
 ## 2026-10-10 — Nicknames & a real tree
 
 ### Added
-- **Nicknames.** Every person can have a nickname, shown beside their name on the
-  person view, in the People list and in the tree, and included in search and backups.
+- **Nicknames**, shown beside the name everywhere and included in search and backups.
   A note like `John "Jack" Smith` is split into name + nickname.
-- **Brother / Sister.** "+ Brother / Sister" is always offered when adding a relative.
-  If there is no parent recorded yet the app creates a shared parent called "Unknown"
-  so the two really are linked as siblings; rename it or swap in the real parent later.
-- **A real tree.** The Tree tab draws an actual branching diagram — a box for each
-  person (with photo and nickname) joined by connector lines — instead of the old
-  collapsible list. It scrolls and zooms with − / +, and tapping anyone opens them.
+- **Brother / Sister** when adding a relative, plus **siblings**, **grandparent** and
+  **grandchild** on the Connect people screen — so more than just parent/partner/child.
+- **A real tree.** The Tree tab draws a branching diagram — a box for each person
+  (with photo and nickname) joined by connector lines — that scrolls and zooms.
 
 ## 2026-10-10 — Photos & richer relationships
 
 ### Added
-- **A photo for each person.** Add, change or remove it in the Add/Edit screen.
-  Images are shrunk on the device (max 240 px, JPEG) so many people fit easily, and
-  the picture shows on the person view and beside every name in the People list.
-- **Edit any time.** Every row in the People list has a ✎ button that opens the
-  person directly for editing, in addition to the Edit button on the person view.
-- **More relationships.** When connecting two people you can mark them as
-  **siblings**, or as **grandparent / grandchild** (on top of parent, child and
-  partners).
-- **More relatives shown.** Each person lists Parents, Partners, Children, Siblings,
-  **Grandparents**, **Grandchildren**, **Aunts & Uncles**, **Nieces & Nephews** and
-  **Cousins** (derived automatically from the family links).
-
-### Notes
-- Photos are included in JSON backups and restored with them.
-- Photos are not drawn into the PDF export.
-- If device storage fills up with photos the app says so instead of silently failing.
+- **A photo for each person** (shrunk on the device), shown on the person view and in
+  the People list.
+- **Edit any time** — a ✎ button on every People-list row.
+- **More relatives shown** — Parents, Partners, Children, Siblings, Grandparents,
+  Grandchildren, Aunts & Uncles, Nieces & Nephews and Cousins.
 
 ## 2026-10-10 — US date format
 
 ### Added
-- Dates can be entered as **`MM/DD/YYYY`** (for example `01/13/1985`) in the
-  Born/Died fields, alongside the existing `YYYY`, `YYYY-MM` and `YYYY-MM-DD`.
-- "Make people from notes" recognises `MM/DD/YYYY` dates too, e.g.
-  `Jane Doe b. 01/13/1985`.
-
-### Changed
-- Dates are normalised to a single internal form when saved, so sorting, ages
-  ("Lived 72") and the PDF export stay correct regardless of which format was typed.
-- Invalid dates (for example a month above 12) are rejected with a clear message.
-- Existing saved records are unaffected.
+- Dates can be entered as **`MM/DD/YYYY`** (for example `01/13/1985`) alongside
+  `YYYY`, `YYYY-MM` and `YYYY-MM-DD`.
