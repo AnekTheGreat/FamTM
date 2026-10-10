@@ -9,6 +9,25 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — The whole family on screen: Everyone view + a fitted Map
+
+### Fixed
+- **Most of the family was off the side of the screen.** The Tree really did draw every
+  person, but it laid them out in one very wide canvas — a 23-person family measures
+  about **1640px** wide on a phone screen roughly **366px** wide, so only the first branch
+  was visible and everyone else (including relatives who joined by marriage) sat off to
+  the right. The Tree tab now has two views:
+  - **Everyone** *(default on phones)* — an indented outline of the whole family that
+    always fits the screen width, so there is no sideways scrolling. Every person and
+    every partner is listed, with **▾ / ▸** to fold a branch.
+  - **Map** — the box-and-connector diagram, now **auto-fitted to the screen** when it
+    opens, so the entire family fits at a glance. **Fit** returns to that full view and
+    **− / +** zoom in for reading detail.
+
+### Changed
+- Added an **Everyone / Map** switch at the top of the Tree tab. **Expand all** and
+  **Collapse** fold the branches in either view.
+
 ## 2026-10-10 — The tree always shows everyone
 
 ### Fixed
