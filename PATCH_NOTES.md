@@ -9,6 +9,31 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-10 — Brothers and sisters share a row, and a family sits above its children
+
+### Fixed
+- **A brother or sister who married into a family that goes back further no longer leaves the rest of
+  the family a row higher.** The married sibling is drawn deep in the other family's line, and the
+  unmarried brothers and sisters used to stay where their own parents left them, so the family looked
+  split — and the parents sat a row above the sibling who stayed home while their married child was
+  drawn rows below. Now **every child of a family is drawn on one row**, and the parents are drawn on
+  the **row just above their children**, following them down. Measured on a family where the son marries
+  a girl whose line goes back two more generations: the brothers and sisters were spread over **1 row,
+  now 0** — son, his wife and his sister share a row, with the parents directly above them.
+- **A girl's parents are no longer left rows up the page.** Even when their own parents are recorded — so
+  they have a fixed generation to sit on — the parents now move down to the row above the couple their
+  child married, one generation at a time, instead of staying where they were with a long line reaching
+  down to their child.
+
+The two rules feed each other (a family that moves down moves its own parents down, which moves their
+brothers and sisters), so they are repeated until nothing moves. A link that loops back on itself
+cannot push a box past its own row, so a saved tree with a crossed link still draws and still finishes.
+
+Verified on the exact bytes shipped: link 28, zoom 24, combine 18, space 23, badlink 28, badload 11,
+sidefamily 27 — **159 assertions, 0 failed**; the 4,260-operation fuzz sweep introduced no violation;
+cyclic and 120-generation families terminate; nothing overlaps, nothing goes upward and nothing is
+drawn outside the canvas; the 23-person family is unchanged at **1050×896**.
+
 ## 2026-10-10 — A new branch goes down the page, not up it
 
 ### Fixed

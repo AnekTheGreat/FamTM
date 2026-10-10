@@ -120,7 +120,17 @@ function build(){
  const N=new Map(nodes.map(n=>[n.r,n]));
  nodes.forEach(n=>n.kids=n.ck.map(r=>N.get(r)).filter(Boolean));
  const dep=(n,path)=>{if(n.fx)return n.d;if(path.has(n.r))return 0;path.add(n.r);let d=0;n.pr.forEach(r=>{const q=N.get(r);if(q)d=Math.max(d,dep(q,path)+1)});path.delete(n.r);n.d=d;n.fx=1;return d};
- nodes.forEach(n=>dep(n,new Set()));return nodes}
+ nodes.forEach(n=>dep(n,new Set()));
+ // A family is drawn on the row just above its own children whenever there is room, so a family
+ // pulled deep by a marriage is not abandoned rows up the page, and brothers and sisters share one
+ // row, so a sibling who married into a family that goes back further does not leave the rest of
+ // the brothers and sisters a row higher. Each rule feeds the other, so they are repeated until
+ // nothing moves; a link that loops back on itself cannot push a box past its own row.
+ for(let go=1,it=0;go&&it<nodes.length+2;it++){
+  go=0;
+  nodes.slice().sort((a,b)=>b.d-a.d).forEach(n=>{if(!n.kids.length)return;const w=Math.min(...n.kids.map(k=>k.d))-1;if(w>n.d){n.d=w;go=1}});
+  nodes.slice().sort((a,b)=>a.d-b.d).forEach(n=>{if(!n.kids.length)return;const D=Math.max(n.d+1,...n.kids.map(k=>k.d));n.kids.forEach(k=>{if(k.d<D){k.d=D;go=1}})})}
+ return nodes}
 const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h(p.name)}</span> <small>${life(p)}</small>`+ps.map(x=>` <small>⚭</small> <span class="n${x.id===selA?' sel':''}" data-id="${x.id}">${h(x.name)}</span>`).join('');
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
 const oline=(n,d,ss)=>{if(ss.has(n.r))return '';ss.add(n.r);const k=n.kids.length,open=!col.has(n.r);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.r}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1,ss)).join(''):''}`};
