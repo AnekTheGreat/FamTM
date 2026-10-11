@@ -9,6 +9,52 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-11 — Take a photo with the camera, and change a picture from the person's own page
+
+This one has two halves: **the page comes over the air as usual, and the camera needs the new APK**
+(the camera is part of the app, not the page).
+
+### Added
+- **Take photo.** The Photo section of the Add/Edit form and a person's own page both offer **Take
+  photo**, which opens the phone's camera and puts the picture straight into the person — shrunk to the
+  same small picture as every other photo. **No camera permission and no storage permission is asked
+  for**: the camera app is handed a one-off writable address into the app's own files, and the page
+  reads the picture back from that same private place. Nothing is written into the phone's gallery.
+- **Change photo from the person's own page.** Their page now has **Add photo / Change photo** and
+  **Take photo** right under their dates, so a picture can be changed without going into Edit first.
+  The new picture is saved and shown the moment it arrives.
+- The taken picture is kept only as long as it takes the page to read it: only the newest one is kept
+  and the folder is emptied on every launch, so the app does not slowly fill the phone.
+
+### Notes
+- **Version 1.1 (versionCode 2).** Install the new APK from Actions to get the camera; until then the
+  page updated over the air simply hides the Take photo buttons rather than offering a camera it cannot
+  open, and everything else keeps working. In a plain phone browser the same button uses the browser's
+  own camera input.
+- The picture is an ordinary photo like the ones you already have: pick a new one and the old one is
+  replaced, or use Remove to drop it.
+
+Verified on the delivered bytes:
+- **12 checks driving the real page** with the app's side of the camera played back exactly as
+  `MainActivity` does it (a real portrait 900×1200 JPEG standing in for the camera's file, served from
+  the same private address the app serves): the form offers Take photo, asks the camera once, shows the
+  picture before saving and keeps it on save at the usual small size; the person's own page takes a new
+  picture and shows it; Change photo from that page still comes from photos/Files and does not open the
+  camera; and the form's original photo button still works. 0 failed.
+- **7 checks for the two older worlds:** an app installed before this change (no camera bridge) hides
+  the Take photo buttons on both surfaces and still takes a picture from photos/Files; and a plain
+  phone browser offers Take photo and sends it to the camera input (`capture="environment"`). 0 failed.
+- **8 checks on where the buttons actually land** (measured on the rendered page at a 390px panel):
+  Add photo and Take photo sit side by side and on the panel, Remove stays hidden until there is a
+  picture to remove and then joins them on a second line, and the person's own page fits Change photo
+  and Take photo with their picture above them — none of them on top of another. 0 failed. Screenshots
+  taken of both.
+- **The 105 existing suites are unchanged**, and the earlier suites all still pass on this page — 71
+  checks (9 nickname, 5 nickname paths, 41 dates, 12 note dates, 4 PDF).
+- **Could not be run here:** this sandbox has no JDK and no Android SDK, so the Android half (the
+  FileProvider, the camera intent, the private photo address) is reviewed rather than compiled; the CI
+  builds the APK on push. The page half above was executed in a real browser.
+
 ## 2026-10-11 — A date with no year is fine, and it is written out in full
 
 This is a page change, so it arrives over the air.

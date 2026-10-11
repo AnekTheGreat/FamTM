@@ -3,6 +3,7 @@ package com.familytree.app
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -22,6 +23,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.webkit.WebViewAssetLoader
 import java.io.File
 import java.net.HttpURLConnection
@@ -38,6 +40,8 @@ class MainActivity : AppCompatActivity() {
     private var chooser: ValueCallback<Array<Uri>>? = null
     private val otaDir by lazy { File(filesDir, "ota").apply { mkdirs() } }
     private val otaFile by lazy { File(otaDir, "index.html") }
+    private var shot: File? = null                                            // a picture just taken
+    private val shotDir by lazy { File(filesDir, "shots").apply { mkdirs() } }
 
     private fun saver(mime: String) = registerForActivityResult(ActivityResultContracts.CreateDocument(mime)) { u ->
         if (u != null) try {
@@ -52,6 +56,17 @@ class MainActivity : AppCompatActivity() {
         chooser = null
     }
 
+    // The camera answers here, and the picture is already on disk — so the page is only told where to
+    // fetch it from, which is the same address the page itself is served from. That is why the page can
+    // read it: nothing has to be pushed through JavaScript as one enormous string.
+    private val shotL = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val f = shot
+        shot = null
+        if (r.resultCode == Activity.RESULT_OK && f != null && f.length() > 0)
+            web.evaluateJavascript("window.__photo&&window.__photo('$HOST/photos/${f.name}')", null)
+        else f?.delete()
+    }
+
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
 
     inner class Bridge {
@@ -60,6 +75,10 @@ class MainActivity : AppCompatActivity() {
             data = Base64.decode(b64, Base64.DEFAULT)
             runOnUiThread { if (name.endsWith(".pdf")) pdfL.launch(name) else jsonL.launch(name) }
         }
+
+        // the "Take photo" button in the page: open the camera and put the picture into the form
+        @JavascriptInterface
+        fun photo() { runOnUiThread { takePhoto() } }
 
         // the ⟳ button in the app: check for an OTA update and reload straight away
         @JavascriptInterface
@@ -85,9 +104,11 @@ class MainActivity : AppCompatActivity() {
         // a newly installed APK always wins over an older OTA copy
         val installed = packageManager.getPackageInfo(packageName, 0).lastUpdateTime
         if (otaFile.exists() && otaFile.lastModified() < installed) otaFile.delete()
+        shotDir.listFiles()?.forEach { it.delete() }        // a picture from an earlier run is never needed
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .addPathHandler("/ota/", WebViewAssetLoader.InternalStoragePathHandler(this, otaDir))
+            .addPathHandler("/photos/", WebViewAssetLoader.InternalStoragePathHandler(this, shotDir))
             .build()
         web = WebView(this)
         web.settings.javaScriptEnabled = true
@@ -164,6 +185,26 @@ class MainActivity : AppCompatActivity() {
             }
         })
         checkOta()
+    }
+
+    // Take photo: the camera app is handed a one-off writable URI pointing into the app's own files, so
+    // no camera permission and no storage permission is asked for, and the picture is never left lying
+    // in the phone's photos. Only the newest one is kept.
+    private fun takePhoto() {
+        try {
+            shotDir.listFiles()?.forEach { it.delete() }
+            val f = File(shotDir, "shot-${System.currentTimeMillis()}.jpg")
+            val u = FileProvider.getUriForFile(this, "$packageName.fileprovider", f)
+            shot = f
+            shotL.launch(Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                putExtra(MediaStore.EXTRA_OUTPUT, u)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                clipData = ClipData.newRawUri("photo", u)
+            })
+        } catch (e: Exception) {                 // no camera app on this phone, or nowhere to write
+            shot = null
+            toast("No camera on this phone")
+        }
     }
 
     private fun sha(b: ByteArray) = MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }

@@ -35,7 +35,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 <main id="main"></main>
 <nav><button data-t="people" class="on">People</button><button data-t="tree">Tree</button><button data-t="notes">Notes</button></nav>
 <button id="fab" data-act="add" aria-label="Add person">+</button>
-<dialog id="dlg"></dialog><dialog id="pick"></dialog><div id="tt"></div><input type="file" id="file" accept="application/json" hidden>
+<dialog id="dlg"></dialog><dialog id="pick"></dialog><div id="tt"></div><input type="file" id="file" accept="application/json" hidden><input type="file" id="df" accept="image/*" hidden><input type="file" id="dc" accept="image/*" capture="environment" hidden>
 <script>
 const $=s=>document.querySelector(s),KEY='familytree.v1',uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -87,6 +87,18 @@ const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m,mo,d,y=null;
 const shrink=(f,cb,no)=>{const fail=()=>no&&no();const r=new FileReader();r.onerror=fail;r.onload=()=>{const i=new Image();i.onerror=fail;i.onload=()=>{const s=240,m=Math.min(s/i.width,s/i.height,1),cv=document.createElement('canvas');cv.width=Math.round(i.width*m)||s;cv.height=Math.round(i.height*m)||s;cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72))};i.src=r.result};r.readAsDataURL(f)};
 const ava=p=>p.photo?`<img class="av" src="${p.photo}" alt="">`:'';
 const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t.className='',2200)};
+// ---- pictures: they come from the phone's photos, from Files, or straight from the camera ----
+const picBad=()=>say('That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead');
+let picFor=null;                  // where the next picture belongs: the open form, or a person's own page
+const camOK=()=>{try{return !window.Android||typeof Android.photo=='function'}catch(e){return true}};
+const picIn=b=>shrink(b,d=>{if(picFor)picFor(d)},picBad);
+const askPhoto=set=>{picFor=set;$('#df').click()};
+const askCamera=set=>{picFor=set;let sent=0;
+ if(window.Android){try{if(typeof Android.photo=='function'){Android.photo();sent=1}}catch(e){}}
+ if(!sent)$('#dc').click()};
+const savePhoto=(id,d)=>{const q=M.get(id);if(!q)return;q.photo=d;commit();detail(id);say('Photo updated')};
+// the app hands back a picture it has just taken, as an address this page is allowed to read
+window.__photo=u=>fetch(u).then(r=>r.blob()).then(picIn).catch(picBad);
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
 function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}index();render()}
 const desc=id=>{const s=new Set,st=[id];while(st.length)for(const c of C.get(st.pop())||[])if(!s.has(c.id)){s.add(c.id);st.push(c.id)}return s};
@@ -324,7 +336,7 @@ function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if
 const show=t=>{const d=$('#dlg');d.innerHTML=t;d.open||d.showModal();d.scrollTop=0};
 const chip=x=>`<button class="chip" data-go="${x.id}">${h(x.name)} <small>${life(x)}</small></button>`;
 function detail(id){const p=M.get(id);if(!p)return;const sec=(t,a)=>a.length?`<h3>${t}</h3>${a.map(chip).join('')}`:'';const pp=a=>[...new Set(a)].map(i=>M.get(i)).filter(Boolean),pid=`data-pid="${id}"`;
- show(`${p.photo?`<img class="av lg" src="${p.photo}" alt="">`:''}<h2>${h(p.name)}${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}</h2><p class="m">${[p.birth&&'Born '+fmt(p.birth),p.death&&'Died '+fmt(p.death),age(p)].filter(Boolean).join(' · ')||'No dates'}</p>${p.note?`<p>${h(p.note)}</p>`:''}${sec('Parents',pp(p.parents))}${sec('Partners',pp(p.partners))}${sec('Children',pp(kidIds(id)))}${sec('Siblings',pp(sibIds(id)))}${sec('Grandparents',pp(gpIds(id)))}${sec('Grandchildren',pp(gcIds(id)))}${sec('Aunts & Uncles',pp(uncIds(id)))}${sec('Nieces & Nephews',pp(nieIds(id)))}${sec('Cousins',pp(couIds(id)))}
+ show(`${p.photo?`<img class="av lg" src="${p.photo}" alt="">`:''}<h2>${h(p.name)}${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}</h2><p class="m">${[p.birth&&'Born '+fmt(p.birth),p.death&&'Died '+fmt(p.death),age(p)].filter(Boolean).join(' · ')||'No dates'}</p><div class="bar"><button class="chip" data-act="shot" ${pid}>${p.photo?'Change photo':'Add photo'}</button>${camOK()?`<button class="chip" data-act="shotcam" ${pid}>Take photo</button>`:''}</div>${p.note?`<p>${h(p.note)}</p>`:''}${sec('Parents',pp(p.parents))}${sec('Partners',pp(p.partners))}${sec('Children',pp(kidIds(id)))}${sec('Siblings',pp(sibIds(id)))}${sec('Grandparents',pp(gpIds(id)))}${sec('Grandchildren',pp(gcIds(id)))}${sec('Aunts & Uncles',pp(uncIds(id)))}${sec('Nieces & Nephews',pp(nieIds(id)))}${sec('Cousins',pp(couIds(id)))}
  <h3>Add a new person</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button><button class="chip" data-act="addsib" ${pid}>+ Brother / Sister</button>
  <h3>Link someone already added</h3>${p.parents.length<2?`<button class="chip" data-link="par" ${pid}>Pick a parent</button>`:''}<button class="chip" data-link="prt" ${pid}>Pick a partner</button><button class="chip" data-link="kid" ${pid}>Pick a child</button><button class="chip" data-link="sib" ${pid}>Pick a brother / sister</button><button class="chip" data-link="gp" ${pid}>Pick a grandparent</button><button class="chip" data-link="gc" ${pid}>Pick a grandchild</button>
  <div class="bar"><span></span><button class="btn" data-act="edit" ${pid}>Edit</button><button class="btn p" data-act="close">Done</button></div>`)}
@@ -336,7 +348,7 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
  show(`<h2>${e?'Edit person':'Add person'}</h2><div class="g2"><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label><label>Nickname<input id="fk" value="${h(p.nick)}" placeholder="optional – fine on its own" autocomplete="off"></label></div>
  <div class="g2"><label>Born<input id="fb" value="${h(fmt(p.birth))}" placeholder="7/4, 4 Jul 1950 (year optional)"></label><label>Died<input id="fd" value="${h(fmt(p.death))}" placeholder="7/4 or 4 Jul 1950 – blank if living"></label></div>
  <label>Notes<textarea id="fo" rows="2">${h(p.note)}</textarea></label>
- <h3>Photo</h3><div class="phr"><span id="pv">${p.photo?`<img class="av" src="${p.photo}" alt="">`:''}</span><button class="btn" id="fp" type="button">${p.photo?'Change':'Add photo'}</button><button class="btn d" id="fr" type="button"${p.photo?'':' hidden'}>Remove</button></div><input type="file" id="ff" accept="image/*" hidden>
+ <h3>Photo</h3><div class="phr"><span id="pv">${p.photo?`<img class="av" src="${p.photo}" alt="">`:''}</span><button class="btn" id="fp" type="button">${p.photo?'Change':'Add photo'}</button>${camOK()?`<button class="btn" id="ft" type="button">Take photo</button>`:''}<button class="btn d" id="fr" type="button"${p.photo?'':' hidden'}>Remove</button></div><input type="file" id="ff" accept="image/*" hidden>
  <h3>Parents</h3><div id="rp"></div><h3>Partners</h3><div id="rt"></div><h3>Children</h3><div id="rc"></div><p class="er" id="er"></p>
  <div class="bar">${e?'<button class="btn d" id="fx">Delete</button>':''}<span></span><button class="btn" id="fc">Cancel</button>${e?'':'<button class="btn" id="fna">Save & another</button>'}<button class="btn p" id="fs">Save</button></div>`);
  $('#fn').focus();$('#dlg').onkeydown=ev=>{if(ev.key!=='Enter'||!ev.target)return;const t=ev.target;if(t.tagName=='TEXTAREA'||t.type=='file')return;const s=$('#fs');if(s){ev.preventDefault();s.click()}};
@@ -347,6 +359,7 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
  $('#rp').onclick=rel;$('#rt').onclick=rel;$('#rc').onclick=rel;draw();$('#fc').onclick=()=>e?detail(id):$('#dlg').close();
  let ph=p.photo||'';const pv=()=>{$('#pv').innerHTML=ph?`<img class="av" src="${ph}" alt="">`:'';$('#fp').textContent=ph?'Change':'Add photo';$('#fr').hidden=!ph};
  $('#fp').onclick=()=>$('#ff').click();$('#fr').onclick=()=>{ph='';pv()};
+ const ft=$('#ft');if(ft)ft.onclick=()=>askCamera(d=>{ph=d;pv()});        // the phone's camera, when it can be opened
  $('#ff').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(f)shrink(f,d=>{ph=d;pv()},()=>say('That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead'))};
  if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id)});commit()})};
  const doSave=again=>{let name=$('#fn').value.trim(),nick=$('#fk').value.trim();if(!name&&nick){name=nick;nick=''}const b=normDate($('#fb').value),d=normDate($('#fd').value);
@@ -407,7 +420,7 @@ function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-
 function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);
  ({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
  addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{fitAll=1;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();sc=null;tx=null;ty=null;firstMap=1;render()},colall:()=>{P.forEach(p=>col.add(p.id));tx=null;ty=null;anchorFirst=1;render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
- restore:()=>$('#file').click()})[a]()}
+ restore:()=>$('#file').click(),shot:()=>askPhoto(d=>savePhoto(pid,d)),shotcam:()=>askCamera(d=>savePhoto(pid,d))})[a]()}
 const syncNav=()=>document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 function ask(msg,yes){onYes=yes;show(`<h2>Are you sure?</h2><p>${h(msg)}</p><div class="bar"><span></span><button class="btn" data-act="close">Cancel</button><button class="btn d" data-act="yes">Yes</button></div>`)}
 function doYes(){const f=onYes;onYes=null;$('#dlg').close();f&&f()}
@@ -455,6 +468,8 @@ document.onclick=e=>{const el=e.target.closest('[data-id],[data-go],[data-act],[
  if(d.id||d.go){e.preventDefault();if(conn&&tab=='tree'&&d.id)pickNode(d.id);else detail(d.id||d.go)}
  else if(d.rel)link(d.rel);else if(d.t){tab=d.t;conn=false;selA=null;syncNav();render()}else act(d.act,d)};
 $('#mn').onclick=menu;$('#rf').onclick=refresh;$('#sq').oninput=e=>{qs=e.target.value;if(tab!='people'){tab='people';conn=false;syncNav()}render()};
+$('#df').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)picIn(f)};
+$('#dc').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)picIn(f)};
 $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const a0=JSON.parse(await f.text()),a=Array.isArray(a0)?a0:(a0&&a0.people);if(!Array.isArray(a))throw 0;
  const nn=(Array.isArray(a0&&a0.notes)?a0.notes:[]).filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}));
  const n=a.filter(x=>x&&(x.name||x.nick)).map(normPerson),ids=new Set(n.map(x=>x.id));

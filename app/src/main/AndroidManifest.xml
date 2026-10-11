@@ -10,5 +10,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- A picture taken with the camera is written into the app's own files, so the camera app is
+             handed a one-off writable URI through this provider: no camera and no storage permission
+             is needed for that. No CAMERA permission is declared on purpose - declaring it would make
+             the camera intent need a runtime grant. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
