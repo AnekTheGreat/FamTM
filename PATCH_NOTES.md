@@ -9,6 +9,61 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-11 — The Menu no longer offers to delete everyone
+
+### Removed
+- **“Delete everything” is gone.** The Menu now offers **Export PDF**, **Backup (JSON)**, **Restore from backup** and
+  **Close**, and nothing else. The code behind it is gone as well, so nothing on the page can empty your family any
+  more — not the button, and not a mistap on where it used to be. Removing one person from their own card
+  (**Edit → Delete**) is unchanged, and **Restore from backup** still replaces your tree on purpose, after asking.
+
+This is a page change, so it arrives over the air like the rest.
+
+Verified on the delivered bytes:
+- **9 checks in a real browser, 0 failed** — the menu opens with the ways back and out, no button on it asks to
+  delete, no element anywhere in the page carries a delete-everything action, the app's own script contains no
+  delete-everything code at all, nobody is deleted while the menu is open, **Close** closes it, **Backup** still works
+  and no error is thrown while using the menu. **Control:** the same checks against the build before this change fail
+  three of them — the button, the wording, and the code — so they really do test this change.
+- everything else is unchanged: 87 layout checks, 154 photo checks, 78 geometry checks with no clipped text, 414
+  consistency checks, 10 pixel checks, and link 28, zoom 25, combine 18, space 24, badlink 28, badload 11,
+  sidefamily 27, anchoring 18, groups 96 — **0 failed**.
+
+## 2026-10-11 — A picture can come from your photos, not only from Files
+
+**This one needs a new APK** (it is a phone-side change), built from this commit. It is not an over-the-air update.
+
+### Added
+- **“Add photo” now offers the phone's own pictures.** The app used to open the file browser for every picture
+  choice, so the photo gallery was never on the list. For a page asking for an image it now opens a sheet with
+  **Photos** (Android 13+ system photo picker) and **Gallery** (the phone's gallery app on older Android) as well as
+  **Files**, and the picture you tap in the picker comes straight back to the card and is saved as before. Restores
+  and any other kind of file still open the file browser directly, with no extra screen in the way.
+- If a phone has no gallery and no photo picker at all, the choice falls back to the file browser, so Add photo can
+  never end up doing nothing.
+
+### Fixed (delivered over the air)
+- **A picture that cannot be opened now says so.** If the phone hands back a picture the app cannot decode — a HEIC
+  photo on a phone without a decoder, or a gallery that returns a photograph we are not allowed to read — the card
+  used to stay exactly as it was, with no message at all, so it looked as though the tap had been ignored. It now
+  says *“That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead”*, and no
+  half-set picture is saved.
+
+Verified:
+- **9 browser checks, 0 failed** on the page as a phone sees it — a real picture picked through the card's file
+  input is taken, shrunk and saved on the person, and a picture the phone cannot hand over says so, keeps no
+  half-set picture and writes no photo. **Control:** the same checks against the build before this change fail
+  exactly the new one (*“the app tells you the picture could not be opened”* reads empty), so the check really does
+  test the new behaviour.
+- the rest of the battery is unchanged on these bytes: 87 layout checks, 154 photo checks, 78 geometry checks with
+  no clipped text, 414 consistency checks, 10 pixel checks, and link 28, zoom 25, combine 18, space 24, badlink 28,
+  badload 11, sidefamily 27, anchoring 18, groups 96 — **0 failed**.
+
+The phone-side change follows Android's own rules: the system photo picker needs no permission and no manifest
+entry (Android 13+, `MediaStore.ACTION_PICK_IMAGES`), and older phones use `ACTION_PICK` against the pictures
+library. It could not be compiled in this workspace — there is no JDK, Gradle or Kotlin here — so it is compiled
+and packaged by the repository's own CI workflow on push.
+
 ## 2026-10-11 — Everyone who has a picture shows it, in their own card
 
 ### Fixed

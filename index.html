@@ -54,7 +54,7 @@ const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m;
  if(m=v.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?$/))return +m[2]>=1&&+m[2]<=12?m[1]+'-'+pad2(m[2])+(m[3]?'-'+pad2(m[3]):''):null;
  if(m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))return +m[1]>=1&&+m[1]<=12&&+m[2]>=1&&+m[2]<=31?m[3]+'-'+pad2(m[1])+'-'+pad2(m[2]):null;
  return null};
-const shrink=(f,cb)=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const s=240,m=Math.min(s/i.width,s/i.height,1),cv=document.createElement('canvas');cv.width=Math.round(i.width*m)||s;cv.height=Math.round(i.height*m)||s;cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72))};i.src=r.result};r.readAsDataURL(f)};
+const shrink=(f,cb,no)=>{const fail=()=>no&&no();const r=new FileReader();r.onerror=fail;r.onload=()=>{const i=new Image();i.onerror=fail;i.onload=()=>{const s=240,m=Math.min(s/i.width,s/i.height,1),cv=document.createElement('canvas');cv.width=Math.round(i.width*m)||s;cv.height=Math.round(i.height*m)||s;cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72))};i.src=r.result};r.readAsDataURL(f)};
 const ava=p=>p.photo?`<img class="av" src="${p.photo}" alt="">`:'';
 const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t.className='',2200)};
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
@@ -281,7 +281,7 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
  $('#rp').onclick=rel;$('#rt').onclick=rel;$('#rc').onclick=rel;draw();$('#fc').onclick=()=>e?detail(id):$('#dlg').close();
  let ph=p.photo||'';const pv=()=>{$('#pv').innerHTML=ph?`<img class="av" src="${ph}" alt="">`:'';$('#fp').textContent=ph?'Change':'Add photo';$('#fr').hidden=!ph};
  $('#fp').onclick=()=>$('#ff').click();$('#fr').onclick=()=>{ph='';pv()};
- $('#ff').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(f)shrink(f,d=>{ph=d;pv()})};
+ $('#ff').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(f)shrink(f,d=>{ph=d;pv()},()=>say('That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead'))};
  if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id)});commit()})};
  const doSave=again=>{const name=$('#fn').value.trim(),b=normDate($('#fb').value),d=normDate($('#fd').value);
   const bad=!name?'Name is required.':b===null||d===null?'Dates must be YYYY, YYYY-MM, YYYY-MM-DD or MM/DD/YYYY.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
@@ -337,11 +337,11 @@ function panzoom(vp,ti){const pts=new Map();let base=null,moved=false;
   sc=Math.max(.12,Math.min(3,sc*(e.deltaY<0?1.12:.89)));tx=(e.clientX-r.left)-ox*sc;ty=(e.clientY-r.top)-oy*sc;
   clampView(vp);applyView(ti);e.preventDefault()},{passive:false})}
 const refresh=()=>{const A=window.Android;if(A&&A.refresh)A.refresh();else{say('Checking for the latest version…');setTimeout(()=>location.reload(),600)}};
-function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn d" data-act="wipe">Delete everything</button><button class="btn" data-act="close">Close</button></div>`)}
+function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn" data-act="close">Close</button></div>`)}
 function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);
  ({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
  addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{sc=null;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();render()},colall:()=>{P.forEach(p=>col.add(p.id));render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
- restore:()=>$('#file').click(),wipe:()=>ask('Delete ALL people and notes? Back up first.',()=>{P=[];N=[];commit()})})[a]()}
+ restore:()=>$('#file').click()})[a]()}
 const syncNav=()=>document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 function ask(msg,yes){onYes=yes;show(`<h2>Are you sure?</h2><p>${h(msg)}</p><div class="bar"><span></span><button class="btn" data-act="close">Cancel</button><button class="btn d" data-act="yes">Yes</button></div>`)}
 function doYes(){const f=onYes;onYes=null;$('#dlg').close();f&&f()}

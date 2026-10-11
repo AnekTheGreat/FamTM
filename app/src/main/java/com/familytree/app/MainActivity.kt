@@ -1,9 +1,13 @@
 package com.familytree.app
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
@@ -42,8 +46,10 @@ class MainActivity : AppCompatActivity() {
     }
     private val pdfL = saver("application/pdf")
     private val jsonL = saver("application/json")
-    private val pickL = registerForActivityResult(ActivityResultContracts.GetContent()) { u ->
-        chooser?.onReceiveValue(if (u == null) null else arrayOf(u)); chooser = null
+    private val pickL = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        val u = r.data?.data ?: r.data?.clipData?.getItemAt(0)?.uri
+        chooser?.onReceiveValue(if (r.resultCode == Activity.RESULT_OK && u != null) arrayOf(u) else null)
+        chooser = null
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
@@ -114,8 +120,38 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
 
+            // A picture does not only live in Files, so a page asking for an image is offered the phone's own
+            // pictures as well: the system photo picker on Android 13+, and the gallery app on older phones.
+            // Files stays on the sheet, so nothing that worked before is lost, and it is the fallback when a
+            // phone has neither. The URI that comes back is read straight away (the picker grants that) and
+            // handed to the page, which shrinks it to a 240px picture as before.
             override fun onShowFileChooser(w: WebView?, cb: ValueCallback<Array<Uri>>?, p: FileChooserParams?): Boolean {
-                chooser?.onReceiveValue(null); chooser = cb; pickL.launch("*/*"); return true
+                chooser?.onReceiveValue(null); chooser = cb
+                val types = p?.acceptTypes?.toList() ?: emptyList()
+                val wantsImages = types.isEmpty() || types.any { it.startsWith("image/") }
+                val files = p?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = if (wantsImages) "image/*" else "*/*"
+                }
+                val sheet = mutableListOf<Intent>()
+                if (wantsImages) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                        sheet += Intent(MediaStore.ACTION_PICK_IMAGES).setType("image/*")
+                    sheet += Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).setType("image/*")
+                }
+                sheet += files
+                val first = sheet.removeAt(0)
+                // one choice (a restore, say, which only Files can serve): open it directly, no sheet in the way
+                val ask = if (sheet.isEmpty()) first else
+                    Intent(Intent.ACTION_CHOOSER)
+                        .putExtra(Intent.EXTRA_INTENT, first)
+                        .putExtra(Intent.EXTRA_INITIAL_INTENTS, sheet.toTypedArray())
+                try { pickL.launch(ask) }
+                catch (e: Exception) {                   // no gallery and no picker on this phone: Files alone
+                    try { pickL.launch(files) }
+                    catch (e2: Exception) { chooser?.onReceiveValue(null); chooser = null }
+                }
+                return true
             }
         }
         setContentView(web)
