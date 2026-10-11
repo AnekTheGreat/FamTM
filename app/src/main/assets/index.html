@@ -39,21 +39,51 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 <script>
 const $=s=>document.querySelector(s),KEY='familytree.v1',uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,tx=null,ty=null,col=new Set(),gW=0,gH=0,firstMap=1,tv='map';
+let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,tx=null,ty=null,col=new Set(),gW=0,gH=0,firstMap=1,tv='map',fitAll=0,anchorId=null,anchorFirst=0;
 const str=x=>String(x??''),arr=x=>Array.isArray(x)?x:[];
-const normPerson=x=>{const o=x&&typeof x=='object'?x:{};return{id:str(o.id)||uid(),name:str(o.name),nick:str(o.nick),birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str)}};
+const normPerson=x=>{const o=x&&typeof x=='object'?x:{};return{id:str(o.id)||uid(),name:str(o.name)||str(o.nick),nick:str(o.name)?str(o.nick):'',birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str)}};
 function loadData(){let pl=[],nt=[];try{const d=JSON.parse(localStorage.getItem(KEY)||'null');pl=Array.isArray(d)?d:arr(d&&d.people);nt=arr(d&&d.notes)}catch(e){}try{const n=JSON.parse(localStorage.getItem(KEY+'.notes')||'null');if(Array.isArray(n))nt=n}catch(e){}return{people:pl.filter(x=>x&&x.id).map(normPerson),notes:nt.filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}))}}
 {const d=loadData();P=d.people;N=d.notes}
-const yr=d=>d?d.slice(0,4):'',life=p=>p.birth||p.death?yr(p.birth)+'–'+yr(p.death):'';
-const sk=p=>(p.birth||'9999')+p.name,cmp=(a,b)=>sk(a)<sk(b)?-1:1;
-const fmt=d=>/^\d{4}-\d\d-\d\d$/.test(d)?new Date(d+'T00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):d;
-const age=p=>{const b=parseInt(p.birth);if(!b)return'';const n=(p.death?parseInt(p.death):new Date().getFullYear())-b;return n>=0?(p.death?'Lived ':'Age ')+n:''};
+// Month names, so a date can be written the way people write it. One list feeds the reader, the
+// writer and the notes, so nothing can drift apart.
+const MON='january february march april may june july august september october november december'.split(' '),
+ MONRE='(?:'+MON.map(m=>m.slice(0,3)).join('|')+')[a-z]*[.]?',
+ monNum=t=>{t=String(t||'').toLowerCase().replace(/[.]$/,'');if(t.length<3)return 0;const i=MON.findIndex(m=>m.slice(0,3)==t.slice(0,3));return i<0?0:i+1};
+const yr=d=>/^[0-9]{4}/.test(String(d||''))?String(d).slice(0,4):'';
+// A date nobody gave a year for is kept as "--07-04" (the 4th of July, year unknown) and shown as a
+// day and month; every date with a year keeps it.
+const pd=d=>{const m=/^--([0-9]{2})(?:-([0-9]{2}))?$/.exec(String(d||''));if(!m)return'';
+ const mo=+m[1],dd=+m[2];
+ return dd?new Date(2000,mo-1,dd).toLocaleDateString(undefined,{day:'numeric',month:'short'}):new Date(2000,mo-1,1).toLocaleDateString(undefined,{month:'short'})};
+// A year range whenever a year is known, and a bare day and month when none ever was
+const life=p=>{const b=yr(p.birth)||pd(p.birth),d=yr(p.death)||pd(p.death);if(!b&&!d)return'';
+ return p.death?(b||'')+'–'+d:b+'–'};
+const sk=p=>(yr(p.birth)||'9999')+p.name,cmp=(a,b)=>sk(a)<sk(b)?-1:1;
+const fmt=d=>{const m=/^([0-9]{4})(?:-([0-9]{2})(?:-([0-9]{2}))?)?$/.exec(String(d||''));
+ if(!m)return pd(d)||String(d||'');
+ const y=+m[1],mo=+m[2],dd=+m[3];if(!mo)return String(y);
+ return new Date(y,mo-1,dd||1).toLocaleDateString(undefined,{year:'numeric',month:'short',day:dd?'numeric':undefined})};
+const age=p=>{const b=parseInt(yr(p.birth)||'0');if(!b)return'';const dy=parseInt(yr(p.death)||'0');if(p.death&&!dy)return'';
+ const n=(dy||new Date().getFullYear())-b;return n>=0?(p.death?'Lived ':'Age ')+n:''};
 const pad2=n=>String(n).padStart(2,'0');
-const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m;
- if(m=v.match(/^(\d{4})$/))return m[1];
- if(m=v.match(/^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?$/))return +m[2]>=1&&+m[2]<=12?m[1]+'-'+pad2(m[2])+(m[3]?'-'+pad2(m[3]):''):null;
- if(m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))return +m[1]>=1&&+m[1]<=12&&+m[2]>=1&&+m[2]<=31?m[3]+'-'+pad2(m[1])+'-'+pad2(m[2]):null;
- return null};
+// One reader for the Born and Died boxes and for notes, forgiving on purpose: the year can be left
+// out ("7/4" is the 4th of July), a month can be written out ("4 Jul", "July 4", "July 1950"), and
+// "21/7" is read as 21 July because a first number over 12 can only be a day. A date with no year is
+// kept as "--MM-DD", so nothing ever has to guess which year it was.
+const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m,mo,d,y=null;
+ if(m=v.match(/^([0-9]{4})$/))return m[1];
+ else if(m=v.match(/^--([0-9]{1,2})(?:-([0-9]{1,2}))?$/)){mo=+m[1];d=m[2]?+m[2]:null}
+ else if(m=v.match(/^([0-9]{4})[-/.]([0-9]{1,2})(?:[-/.]([0-9]{1,2}))?$/)){y=+m[1];mo=+m[2];d=m[3]?+m[3]:null}
+ else if(m=v.match(/^([0-9]{1,2})[-/.]([0-9]{1,2})[-/.]([0-9]{4})$/)){y=+m[3];const a=+m[1],b=+m[2];if(a>12&&b<=12){d=a;mo=b}else{mo=a;d=b}}
+ else if(m=v.match(/^([0-9]{1,2})[-/.]([0-9]{1,2})$/)){const a=+m[1],b=+m[2];if(a>12&&b<=12){d=a;mo=b}else{mo=a;d=b}}
+ else if(m=v.match(/^([0-9]{1,2})[-/.]([0-9]{4})$/)){mo=+m[1];y=+m[2];d=null}
+ else if(m=v.match(new RegExp('^([0-9]{1,2})(?:st|nd|rd|th)?[, ]+('+MONRE+')(?:[, ]+([0-9]{4}))?$','i'))){d=+m[1];mo=monNum(m[2]);y=m[3]?+m[3]:null}
+ else if(m=v.match(new RegExp('^('+MONRE+')[, ]+([0-9]{1,2})(?:st|nd|rd|th)?(?:[, ]+([0-9]{4}))?$','i'))){mo=monNum(m[1]);d=+m[2];y=m[3]?+m[3]:null}
+ else if(m=v.match(new RegExp('^('+MONRE+')[, ]+([0-9]{4})$','i'))){mo=monNum(m[1]);y=+m[2];d=null}
+ else if(m=v.match(new RegExp('^('+MONRE+')$','i'))){mo=monNum(m[1]);d=null}
+ else return null;
+ if(!mo||mo<1||mo>12||(d!=null&&(d<1||d>31)))return null;
+ return y==null?'--'+pad2(mo)+(d!=null?'-'+pad2(d):''):String(y)+'-'+pad2(mo)+(d!=null?'-'+pad2(d):'')};
 const shrink=(f,cb,no)=>{const fail=()=>no&&no();const r=new FileReader();r.onerror=fail;r.onload=()=>{const i=new Image();i.onerror=fail;i.onload=()=>{const s=240,m=Math.min(s/i.width,s/i.height,1),cv=document.createElement('canvas');cv.width=Math.round(i.width*m)||s;cv.height=Math.round(i.height*m)||s;cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72))};i.src=r.result};r.readAsDataURL(f)};
 const ava=p=>p.photo?`<img class="av" src="${p.photo}" alt="">`:'';
 const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t.className='',2200)};
@@ -226,10 +256,27 @@ function tlayout(list){
   c.forEach(n=>{colW[n.x]=Math.max(colW[n.x],n.w)});
   for(let i=0;i<=mx;i++){colX[i]=accW;accW+=(colW[i]||0)+TGX}
   c.forEach(n=>{pos.set(n,{px:colX[n.x],py:(off.get(n.d)||0)+top,w:n.w,h:n.h,mem:n.mem,cols:n.cols,il:n.il,ir:n.ir,cw:n.cw});outN.push(n)});
-  c.forEach(n=>n.pr.forEach(r=>{const q=N.get(r);if(!q)return;
-   const rel=[];n.mem.forEach(c=>c.parents.forEach(pid=>{if(q.mem.some(x=>x.id===pid))rel.push([pid,c.id])}));
-   edges.push(Object.assign([pos.get(q),pos.get(n)],{rel}))}));
   top+=y+TGAP;W=Math.max(W,accW-TGX)});
+ // A mother and father whose only child here is one half of a couple are drawn over THEIR OWN child
+ // inside that box, not over the middle of the pair: the girl's parents go directly over the girl, so
+ // their line visibly belongs to her and the family above does not read as the parents of the couple.
+ // Nobody else on the row is moved and the gap to the next box is never closed, so nothing overlaps;
+ // if the box has to lean past the edge of the page, the page grows instead.
+ const rowAt=new Map();
+ outN.forEach(n=>{const o=pos.get(n),r=Math.round(o.py);if(!rowAt.has(r))rowAt.set(r,[]);rowAt.get(r).push(n)});
+ rowAt.forEach(row=>{row.sort((a,b)=>pos.get(a).px-pos.get(b).px);
+  row.forEach((n,i)=>{if(n.kids.length!==1)return;const k=n.kids[0];if(k.mem.length<2)return;
+   const kid=k.mem.find(m=>m.parents.some(pid=>n.mem.some(x=>x.id===pid)));if(!kid)return;
+   const no=pos.get(n),ko=pos.get(k);if(!ko)return;                       // a folded-away child is not drawn
+   const want=edgeX(ko,[kid.id])-no.w/2;
+   const lo=i?pos.get(row[i-1]).px+pos.get(row[i-1]).w+TGX:0,
+    hi=i<row.length-1?pos.get(row[i+1]).px-TGX-no.w:Infinity;
+   if(lo<=hi)no.px=Math.max(lo,Math.min(hi,want))})});
+ // the lines are drawn from where the boxes ended up, and the page is as wide as what is on it
+ outN.forEach(n=>n.pr.forEach(r=>{const q=N.get(r);if(!q)return;
+  const rel=[];n.mem.forEach(c=>c.parents.forEach(pid=>{if(q.mem.some(x=>x.id===pid))rel.push([pid,c.id])}));
+  edges.push(Object.assign([pos.get(q),pos.get(n)],{rel}))}));
+ let ext=0;outN.forEach(n=>{const o=pos.get(n);ext=Math.max(ext,o.px+o.w)});W=Math.max(W,ext);
  return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
 const trow=x=>`<div class="trow">${ava(x)}<span class="cw"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></span></div>`;
 const tbox=(n,o,k)=>{const rows=n.mem.length>MAXROW?[...n.mem.slice(0,MAXROW-1),null]:n.mem;   // more people than fit: say how many
@@ -251,8 +298,27 @@ function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if
   const bar=`<div class="cbar"><button class="btn${conn?' p':''}" data-act="conn">${conn?'Done':'Connect people'}</button><button class="btn${tv=='list'?' p':''}" data-act="vlist">Everyone</button><button class="btn${tv=='map'?' p':''}" data-act="vmap">Map</button>${tv=='map'?'<button class="btn" data-act="fit">Fit</button><button class="btn" data-act="zout">−</button><button class="btn" data-act="zin">+</button>':''}<button class="btn" data-act="expall">Expand all</button><button class="btn" data-act="colall">Collapse</button><small>${conn?(selA?'Tap the second person (first: '+h(M.get(selA)?.name)+')':'Tap the first person'):(tv=='map'?(sc<.95?'Drag to move · pinch or − / + to zoom · Fit shows everyone · ▾ folds a branch':'Drag to move · pinch or − / + to zoom · ▾ folds a branch'):'Everyone is listed here · tap a name for details · ▾ folds a branch')}</small></div>`;
   if(tv=='list'){const ss=new Set(),order=full.filter(n=>!n.pr.length).concat(full);m.innerHTML=bar+'<div class="tscroll">'+order.map(n=>oline(n,0,ss)).join('')+'</div>';return}
   m.innerHTML=bar+`<div class="treescroll" id="tv"><div class="treeinner" id="ti" style="width:${W}px;height:${H}px"><svg class="tedge" width="${W}" height="${H}">${L.edges.map(e=>{const a=e[0],b=e[1],x1=edgeX(a,e.rel.map(r=>r[0])),y1=a.py+(a.h||TH),x2=edgeX(b,e.rel.map(r=>r[1])),y2=b.py+(b.mem&&b.mem.length>1?3:0),my=(y1+y2)/2;return `<path d="M${x1} ${y1} V${my} H${x2} V${y2}"/>`}).join('')}</svg>${L.nodes.map(n=>tbox(n,L.pos.get(n),kc.get(n.r)||0)).join('')}</div></div>`;
-  if(tx==null||ty==null){tx=Math.max(0,($('#tv').clientWidth-W*sc)/2);ty=Math.max(0,($('#tv').clientHeight-H*sc)/2)}
-  gW=W;gH=H;clampView($('#tv'));applyView($('#ti'));panzoom($('#tv'),$('#ti'));return}
+  const vpEl=$('#tv');
+  // Fit shows the whole family both ways round — the width and the height — instead of only fitting
+  // the width, which left the bottom of a wide or folded tree off the panel however often it was pressed
+  // and left a big family a sliver of itself. It is the only thing that changes the zoom on its own.
+  if(fitAll){sc=Math.max(.05,Math.min(1,Math.min((avail-4)/W,(vpEl.clientHeight-4)/H)));tx=null;ty=null;fitAll=0}
+  if(tx==null||ty==null){tx=Math.max(0,(vpEl.clientWidth-W*sc)/2);ty=Math.max(0,(vpEl.clientHeight-H*sc)/2)}
+  // The box you just folded stays where you can see it, and after folding everything the page opens on
+  // the first box of what is left rather than on an empty corner of it. Folding a branch can change the
+  // size of the page under the view — a family the fold cuts loose is drawn as its own block — and the
+  // view used to be left where it was, so the family you were working in ended up off the panel.
+  if(anchorFirst){anchorFirst=0;let bst=null;
+   L.nodes.forEach(n=>{const o=L.pos.get(n);if(!bst||o.py<bst.o.py-0.5||(Math.abs(o.py-bst.o.py)<0.5&&o.px<bst.o.px))bst={n,o}});
+   anchorId=bst&&bst.n.r}
+  if(anchorId){const an=L.nodes.find(x=>x.r===anchorId),o=an&&L.pos.get(an);
+   if(o){const vw=vpEl.clientWidth,vh=vpEl.clientHeight,bx=o.px*sc,by=o.py*sc,bw=o.w*sc,bh=o.h*sc,
+    // where the view has to sit for that box to be on the panel — and, when the box is wider or taller
+    // than the panel, its own edge shown rather than a corner of the page that happens to be next to it
+    put=(v,at,size,vp)=>size>vp?at:Math.min(at,Math.max(vp-size+at,v));
+    tx=put(tx,-bx,bw,vw);ty=put(ty,-by,bh,vh)}
+   anchorId=null}
+  gW=W;gH=H;clampView(vpEl);applyView($('#ti'));panzoom(vpEl,$('#ti'));return}
  const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
  m.innerHTML=a.map(p=>`<div class="card" data-id="${p.id}">${ava(p)}<span class="grow"><b>${h(p.name)}</b>${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}${p.parents.length?`<br><small>Child of ${p.parents.map(i=>{const q=M.get(i);return h(q?.name)+(q&&(q.birth||q.death)?' '+life(q):'')}).join(' & ')}</small>`:''}</span><small>${life(p)}</small><button class="eb" data-act="edit" data-pid="${p.id}" aria-label="Edit">✎</button></div>`).join('')||'<p class="m">No matches</p>'}
 const show=t=>{const d=$('#dlg');d.innerHTML=t;d.open||d.showModal();d.scrollTop=0};
@@ -267,8 +333,8 @@ function picker(ex,cb){const k=$('#pick');k.innerHTML='<input id="ps" placeholde
   $('#pl').innerHTML=a.slice(0,50).map(x=>`<button class="card" data-p="${x.id}"><b>${h(x.name)}</b><small>${life(x)}</small></button>`).join('')+(a.length>50?`<p class="m">${a.length-50} more – keep typing</p>`:a.length?'':'<p class="m">No matches</p>')};
  $('#ps').oninput=go;$('#pl').onclick=e=>{const b=e.target.closest('[data-p]');if(b){k.close();cb(b.dataset.p)}};$('#pc').onclick=()=>k.close();go();k.showModal()}
 function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',note:'',parents:[],partners:[],...pre.f},st={par:[...p.parents],prt:[...p.partners],kid:(id?kidIds(id):[])};
- show(`<h2>${e?'Edit person':'Add person'}</h2><div class="g2"><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label><label>Nickname<input id="fk" value="${h(p.nick)}" placeholder="optional" autocomplete="off"></label></div>
- <div class="g2"><label>Born<input id="fb" value="${h(p.birth)}" placeholder="MM/DD/YYYY or YYYY-MM-DD"></label><label>Died<input id="fd" value="${h(p.death)}" placeholder="blank if living"></label></div>
+ show(`<h2>${e?'Edit person':'Add person'}</h2><div class="g2"><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label><label>Nickname<input id="fk" value="${h(p.nick)}" placeholder="optional – fine on its own" autocomplete="off"></label></div>
+ <div class="g2"><label>Born<input id="fb" value="${h(fmt(p.birth))}" placeholder="7/4, 4 Jul 1950 (year optional)"></label><label>Died<input id="fd" value="${h(fmt(p.death))}" placeholder="7/4 or 4 Jul 1950 – blank if living"></label></div>
  <label>Notes<textarea id="fo" rows="2">${h(p.note)}</textarea></label>
  <h3>Photo</h3><div class="phr"><span id="pv">${p.photo?`<img class="av" src="${p.photo}" alt="">`:''}</span><button class="btn" id="fp" type="button">${p.photo?'Change':'Add photo'}</button><button class="btn d" id="fr" type="button"${p.photo?'':' hidden'}>Remove</button></div><input type="file" id="ff" accept="image/*" hidden>
  <h3>Parents</h3><div id="rp"></div><h3>Partners</h3><div id="rt"></div><h3>Children</h3><div id="rc"></div><p class="er" id="er"></p>
@@ -283,10 +349,10 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
  $('#fp').onclick=()=>$('#ff').click();$('#fr').onclick=()=>{ph='';pv()};
  $('#ff').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(f)shrink(f,d=>{ph=d;pv()},()=>say('That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead'))};
  if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id)});commit()})};
- const doSave=again=>{const name=$('#fn').value.trim(),b=normDate($('#fb').value),d=normDate($('#fd').value);
-  const bad=!name?'Name is required.':b===null||d===null?'Dates must be YYYY, YYYY-MM, YYYY-MM-DD or MM/DD/YYYY.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
+ const doSave=again=>{let name=$('#fn').value.trim(),nick=$('#fk').value.trim();if(!name&&nick){name=nick;nick=''}const b=normDate($('#fb').value),d=normDate($('#fd').value);
+  const bad=!name?'Add a name or a nickname.':b===null||d===null?'Dates look like 7/4, 4 Jul 1950 or 1950 – the year can be left out.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
   if(bad){$('#er').textContent=bad;return}
-  const o=e||{id:uid()};Object.assign(o,{name,nick:$('#fk').value.trim(),birth:b,death:d,note:$('#fo').value.trim(),parents:st.par,partners:st.prt});if(ph)o.photo=ph;else delete o.photo;if(!e)P.push(o);
+  const o=e||{id:uid()};Object.assign(o,{name,nick,birth:b,death:d,note:$('#fo').value.trim(),parents:st.par,partners:st.prt});if(ph)o.photo=ph;else delete o.photo;if(!e)P.push(o);
   if(pre.sib&&M.get(pre.sib)){const er=sibLink(M.get(pre.sib),o);if(er)say(er)}
   P.forEach(x=>{if(x===o)return;const has=x.partners.includes(o.id),want=st.prt.includes(x.id);if(want&&!has)x.partners.push(o.id);if(!want&&has)x.partners=x.partners.filter(i=>i!==o.id)});
   st.kid.forEach(cid=>{const k=M.get(cid);if(k&&k.id!==o.id&&k.parents.length<2&&!k.parents.includes(o.id)&&!desc(o.id).has(cid))k.parents.push(o.id)});
@@ -300,7 +366,7 @@ function pdf(){if(!P.length)return say('Nothing to export');
  const W=595,H=842,mg=44,pg=[];let cur=[],y=H-mg;const chk=()=>{if(y<mg+10){pg.push(cur);cur=[];y=H-mg}},T=(t,x,s=10,b=0)=>cur.push({t:esc(t),x,y,s,b});
  const seen=new Set();const walk=(n,d)=>{if(seen.has(n.p.id))return;seen.add(n.p.id);chk();const x=mg+Math.min(d,24)*14,nm=n.p.name+n.ps.map(z=>' & '+z.name).join(''),l=life(n.p);T(nm,x,10,1);l&&T(l,x+Math.min(nm.length,60)*5.9+8,9);y-=15;n.kids.forEach(k=>walk(k,d+1))};
  T('Family Tree',mg,22,1);y-=24;T(P.length+' people  -  '+new Date().toLocaleDateString(),mg,9);y-=26;T('Descendant tree',mg,13,1);y-=20;build().forEach(n=>walk(n,0));
- y-=14;chk();T('Everyone (A-Z)',mg,13,1);y-=20;[...P].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{chk();T(p.name+(p.nick?' ('+p.nick+')':''),mg,9);T((p.birth?'b. '+p.birth:'')+(p.death?'    d. '+p.death:''),mg+300,9);y-=13});
+ y-=14;chk();T('Everyone (A-Z)',mg,13,1);y-=20;[...P].sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{chk();T(p.name+(p.nick?' ('+p.nick+')':''),mg,9);T((p.birth?'b. '+fmt(p.birth):'')+(p.death?'    d. '+fmt(p.death):''),mg+300,9);y-=13});
  pg.push(cur);pg.forEach((c,i)=>c.push({t:`Page ${i+1} of ${pg.length}`,x:W/2-30,y:24,s:8,b:0}));
  const o=[];o[1]='<</Type/Catalog/Pages 2 0 R>>';o[2]=`<</Type/Pages/Kids[${pg.map((_,i)=>`${6+2*i} 0 R`).join(' ')}]/Count ${pg.length}>>`;
  o[3]='<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>';o[4]=o[3].replace('Helvetica','Helvetica-Bold');
@@ -340,17 +406,17 @@ const refresh=()=>{const A=window.Android;if(A&&A.refresh)A.refresh();else{say('
 function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn" data-act="close">Close</button></div>`)}
 function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);
  ({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
- addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{sc=null;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();render()},colall:()=>{P.forEach(p=>col.add(p.id));render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
+ addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{fitAll=1;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();sc=null;tx=null;ty=null;firstMap=1;render()},colall:()=>{P.forEach(p=>col.add(p.id));tx=null;ty=null;anchorFirst=1;render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
  restore:()=>$('#file').click()})[a]()}
 const syncNav=()=>document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 function ask(msg,yes){onYes=yes;show(`<h2>Are you sure?</h2><p>${h(msg)}</p><div class="bar"><span></span><button class="btn" data-act="close">Cancel</button><button class="btn d" data-act="yes">Yes</button></div>`)}
 function doYes(){const f=onYes;onYes=null;$('#dlg').close();f&&f()}
 function toggleConn(){conn=!conn;selA=null;render()}
-const parseNote=t=>{const L=t.trim(),g=r=>{const m=L.match(r);return m?normDate(m[1])||m[1]:''},d='(\\d{4}(?:-\\d\\d?(?:-\\d\\d?)?)?|\\d{1,2}/\\d{1,2}/\\d{4})';
- const nm=L.split(/\s[-–—]\s|[,;:(]|\b(?:b|d|born|died)\b\.?\s*\d|\d{4}/i)[0].trim()||L.slice(0,40);
+const parseNote=t=>{const L=t.trim(),g=r=>{const m=L.match(r);return m?normDate(m[1])||m[1]:''},d='([0-9]{4}(?:-[0-9]{1,2}(?:-[0-9]{1,2})?)?|[0-9]{1,2}/[0-9]{1,2}(?:/[0-9]{4})?|[0-9]{1,2}(?:st|nd|rd|th)?[ ,.]+'+MONRE+'(?:[ ,]+[0-9]{4})?|'+MONRE+'[ ,.]+[0-9]{1,2}(?:st|nd|rd|th)?(?![0-9])(?:[ ,]+[0-9]{4})?|'+MONRE+'[ ,.]*[0-9]{4}|'+MONRE+')';
+ const nm=L.split(/\s[-–—]\s|[,;:(]|\b(?:b|d|born|died)\b[.]?\s*(?:[0-9]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|[0-9]{4}/i)[0].trim()||L.slice(0,40);
  const q=(nm.match(/[“"]([^”"]{1,40})[”"]/)||[])[1]||'';
  return{name:(q?nm.replace(/[“"][^”"]*[”"]/,'').replace(/\s+/g,' ').trim():nm).slice(0,60),nick:q,birth:g(new RegExp('\\b(?:b\\.?|born)\\s*'+d,'i')),death:g(new RegExp('\\b(?:d\\.?|died)\\s*'+d,'i')),note:L}};
-const mkP=o=>{P.push({id:uid(),name:o.name,nick:o.nick||'',birth:o.birth,death:o.death,note:o.note,parents:[],partners:[]})};
+const mkP=o=>{P.push({id:uid(),name:o.name||o.nick,nick:o.name?(o.nick||''):'',birth:o.birth,death:o.death,note:o.note,parents:[],partners:[]})};
 function notesView(m){m.innerHTML=`<textarea id="nt" rows="4" placeholder="Drop notes here, one per line. For example:&#10;Mary Smith b. 1950, John's wife&#10;Jane Doe b. 01/13/1985"></textarea><div class="bar"><small>${N.length} note${N.length==1?'':'s'}</small><span></span>${N.length?'<button class="btn" data-act="allp">Make people from all</button>':''}<button class="btn p" data-act="addn">Add</button></div><div style="height:12px"></div>`+N.map(n=>`<div class="note"><div>${h(n.t)}</div><div style="margin-top:8px"><button class="chip" data-act="n2p" data-nid="${n.id}">Make person</button><button class="chip" data-act="n2a" data-nid="${n.id}">Attach to…</button><button class="chip" data-act="ndel" data-nid="${n.id}">Delete</button></div></div>`).join('')}
 function addN(){const v=$('#nt').value.split('\n').map(s=>s.trim()).filter(Boolean);if(!v.length)return say('Type a note first');N.unshift(...v.map(t=>({id:uid(),t})));commit();say('Added '+v.length)}
 function allP(){const k=N.length;N.forEach(n=>mkP(parseNote(n.t)));N=[];tab='tree';conn=true;selA=null;syncNav();commit();say('Made '+k+' people – tap two to connect them')}
@@ -384,14 +450,14 @@ function linkPick(rel,id){const t=REL[rel],p=M.get(id);if(!p||!t)return;
 function link(t){const a=M.get(selA),b=M.get(selB);if(!a||!b)return;const err=applyLink(a,b,t);
  $('#dlg').close();selA=selB=null;if(err){say(err);render();return}commit();say('Connected')}
 document.onclick=e=>{const el=e.target.closest('[data-id],[data-go],[data-act],[data-t],[data-rel],[data-exp],[data-link]');if(!el)return;const d=el.dataset;
- if(d.exp){e.preventDefault();col.has(d.exp)?col.delete(d.exp):col.add(d.exp);render();return}
+ if(d.exp){e.preventDefault();col.has(d.exp)?col.delete(d.exp):col.add(d.exp);anchorId=d.exp;render();return}
  if(d.link){e.preventDefault();linkPick(d.link,d.pid);return}
  if(d.id||d.go){e.preventDefault();if(conn&&tab=='tree'&&d.id)pickNode(d.id);else detail(d.id||d.go)}
  else if(d.rel)link(d.rel);else if(d.t){tab=d.t;conn=false;selA=null;syncNav();render()}else act(d.act,d)};
 $('#mn').onclick=menu;$('#rf').onclick=refresh;$('#sq').oninput=e=>{qs=e.target.value;if(tab!='people'){tab='people';conn=false;syncNav()}render()};
 $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{const a0=JSON.parse(await f.text()),a=Array.isArray(a0)?a0:(a0&&a0.people);if(!Array.isArray(a))throw 0;
  const nn=(Array.isArray(a0&&a0.notes)?a0.notes:[]).filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}));
- const n=a.filter(x=>x&&x.name).map(normPerson),ids=new Set(n.map(x=>x.id));
+ const n=a.filter(x=>x&&(x.name||x.nick)).map(normPerson),ids=new Set(n.map(x=>x.id));
  n.forEach(x=>{x.parents=x.parents.filter(i=>ids.has(i)).slice(0,2);x.partners=x.partners.filter(i=>ids.has(i))});
  ask(`Replace everything with ${n.length} people from this backup?`,()=>{P=n;N=nn;commit();say('Restored '+n.length+' people')})}catch(err){say('Not a valid backup file')}};
 const fixed=repair();

@@ -9,6 +9,180 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-11 — A date with no year is fine, and it is written out in full
+
+This is a page change, so it arrives over the air.
+
+### Changed
+- **The Born and Died boxes take a date however it is written, and the year can be left out.** "7/4"
+  is the 4th of July and is accepted on its own — so are "4 Jul", "4th July", "July 4", "July 1950",
+  "7/4/1950", "4 Jul 1950", "7-4-1950", "7/1950", "1950-07", "1950", and a month by itself for
+  "some time in July". A first number over 12 can only be a day, so "21/7" is 21 July; with both
+  numbers 12 or under it is month first (7/4 is July 4), the same order the form has always asked for.
+  Anything it still cannot read is refused, and the refusal now says what is allowed:
+  *"Dates look like 7/4, 4 Jul 1950 or 1950 – the year can be left out."*
+- **A date is written out in full wherever it is shown** — the person's page ("Born 4 Jul"), the people
+  list, the cards on the map and the exported PDF: a day and a month when no year was given, "Jul 1950"
+  when only the month and the year are known, and the year whenever there is one. The stored code is
+  never shown.
+- **Opening a person for editing shows the date written out** ("4 Jul"), and saving it again keeps the
+  date exactly as it was — a date with no year stays a date with no year.
+- **Notes read the same dates.** "Mary Smith b. 7/4", "born July 4 1950" and "b. 21/7" now give the
+  person a real date, and a month written out is no longer swallowed into the name — "born July 4 1950"
+  used to make the name "Mary Smith born July 4".
+- A date with no year is kept as itself (`--07-04`, the standard way to write a date without a year), so
+  **no year is ever invented for it**: ages, the year range on a card and the A–Z ordering all treat it
+  as "year unknown".
+
+### The wife's parents, measured
+- On the build on your phone her father's box is centred over the **couple** — measured on your shape at
+  phone zoom he sits **11.5 canvas px from the middle of the pair** and only **21 px from the husband's
+  card**, which is why he reads as the husband's parents. This file lines him up on **her own card**
+  (**9.4 px** off it), with her line ending on her card.
+- Where the husband's own parents' box is in the same row and the row has no slack, her father's box
+  leans as close as the row allows instead of being drawn over the family beside it — his line still
+  ends on her own card.
+
+Verified on the delivered bytes:
+- **41 checks driving the real form in a real browser** (headless Chrome, 390×844, the real buttons):
+  17 ways of writing a date each saved and read back, editing a date with no year and saving it
+  unchanged, a date with no year showing on the people list, a blank date still fine, and three
+  unreadable dates refused with the new message and adding nobody. **Control, the build on the phone:
+  26 of the 41 fail.**
+- **12 checks on the notes path** — "b. 7/4", "born July 4 1950", "b. 21/7", "b. 1950", "born July
+  1950", "b. 4 Jul" all give the right name and the right date. **Control: 7 of the 12 fail.**
+- **4 checks reading the exported PDF**, taken from the real Menu → Export PDF: it says "4 Jul", not the
+  stored code.
+- **The 105 existing suites are unchanged** — the same result line and exit code per suite as the build
+  you already have (82 exit 0, 23 exit 1).
+
+## 2026-10-11 — If all you know is a nickname, that is enough
+
+This is a page change, so it arrives over the air.
+
+### Changed
+- **A person can now be saved with only a nickname.** The Add/Edit form insisted on a **Name** and
+  refused the save with *"Name is required."*, so someone you only know by a nickname could not be
+  added at all. Either box is now enough: type the nickname, save, and the person is added and shown
+  under it. The Nickname box reads *"optional – fine on its own"* to say so, and the refusal you still
+  get — when **both** boxes are blank — now reads *"Add a name or a nickname."*
+- **When a nickname is all there is, it becomes the person's name.** Nothing is left with an empty
+  name and the nickname trailing behind it as a quoted afterthought (a card reading just `“Bobby”`).
+  If you do know the full name, both are kept exactly as before and the card reads
+  **Robert Singh “Bobby”**.
+- **People made from a note work the same way.** A note like `“Bobby” b. 1950` — via **Make person** or
+  **Make people from all** — used to produce somebody with no name at all, drawn as a blank card with
+  `“Bobby”` beside it. They now come out named **Bobby**. Records already saved that way, and backups
+  restored from them, are named from the nickname as they load, so blank cards you may already have
+  disappear.
+
+Verified on the delivered bytes:
+- **9 checks driving the real form in a real browser** (headless Chrome, 390×844, clicking the real
+  buttons): typing only a nickname saves a person shown as **Bobby**, with no empty name and no
+  duplicated *“Bobby”* nickname; a full name **and** a nickname still store and display as
+  `Robert Singh “Bobby”`; and a save with both boxes blank is still refused, with the new message, and
+  adds nobody. **Control:** the shipped build fails 7 of the same checks — it stores 0 people.
+- **5 checks on the note path** in the same browser: the form opens holding the nickname from the note,
+  saving it makes **Bobby**, **Make people from all** names them from their nicknames, nobody is left
+  with an empty name, and both appear on the People list. **Control:** the shipped build fails 4 of the
+  same checks — both people come out with no name.
+- **2 checks for a record already stored with a nickname and no name** (as an older backup could hold):
+  it loads and shows as **Rosie** instead of a blank card reading `“Rosie”`. **Control:** the shipped
+  build fails both.
+- **All 105 existing suites keep their result** — 82 exit 0, 23 exit 1, the same per-suite output line
+  as the shipped build.
+
+## 2026-10-11 — The girl's parents are drawn over the girl
+
+This is a page change, so it arrives over the air.
+
+### Changed
+- **A couple's in-law parents now sit over their own child inside the box, not over the middle of the
+  pair.** When a mother and father have just the one child in a couple box — a daughter who married into
+  the family above her — their box was drawn centred on the *pair*, so the family over the couple read as
+  the parents of both of them. It is now lined up on **her own card**: directly over the girl, with her
+  line coming down onto her. Measured on the drawn page at phone zoom, the parents' box went from
+  **54px off her card to 0px** on the two-family shape, and on the 66-person two-sided family from
+  **164px to 19px** — 19px being the closest the row could carry it without touching the family next
+  door; the line still ends on her own card either way.
+- Nothing else moved: the couple still stays with the family it is read through, the family next door is
+  never shifted to make room, and no box ever overlaps another. If the room on the row is not there, the
+  box leans as close as it can and the **page grows instead** — it is never drawn over its neighbour.
+
+### Unchanged
+- **The map still opens at the readable zoom** (names around 9–10px on a phone), not fitted to the whole
+  family. **Fit** shows everyone when you want the overview.
+
+Verified on the delivered bytes:
+- **9 checks, 0 failed** across four shapes — two families with one marriage; the same with a
+  grandchild; the reported two-sides family with in-law parents who have brothers and sisters of their
+  own; and that family with the girl's parents having only her — measuring, for every parent box whose
+  only child on its row is one half of a couple, how far it sits from **that child's own card**, plus
+  that no two boxes overlap and none leaves the page. **Control:** the build that was shipped fails 2 of
+  the same checks (16px and 164px off her card).
+- **Measured on the real page** (headless Chrome, 390×844 phone, rendered markup, not the model): the
+  parents' box centre is **0.0px** from the girl's own card on the two-family shape, and **18.6px** on the
+  66-person family — the closest the row allows. Screenshots taken of both.
+- **All 105 existing suites keep their result**, and the earlier folding and Fit work still passes
+  (10 checks × 2 phone panel sizes, and 7 checks in a real browser driving the real buttons).
+
+Two diagnostics report the trade this feature makes, and both still pass: `health2`'s *child-off-column*
+metric reads **2** instead of 0 — an in-law box is now over the child's own card rather than exactly in
+its column — and `shape`'s *not-under* count for the 17-person joined family reads **4** instead of 5,
+because one box that was not under its parents now is.
+
+## 2026-10-11 — Folding a branch keeps your place, and Fit really shows everyone
+
+This is a page change, so it arrives over the air.
+
+### Fixed
+- **Folding a branch no longer leaves you somewhere else on the page.** Folding a box can cut a family
+  loose — the married couple that joined two sides is drawn inside one of them — and the page is then
+  laid out with that family as its own block, below the first. The view, though, was left exactly where
+  it had been, so you were looking at a corner of the page where your family no longer was and the rest
+  of it sat off the panel: it read as the tree breaking and hiding people. Now the box you folded is
+  **kept on the panel** — the view is slid only as far as it needs to be — so a branch folds where you
+  are looking and everything else stays where it was.
+- **Collapse no longer opens in the middle of itself.** Pressing **Collapse** (or folding with a box's
+  **▾**) used to leave the view clamped into whatever part of the old, much larger page you had last
+  scrolled to — on a family of 76 that meant the folded tree opened with its start 119px off the left of
+  the panel and, on a short phone, 9px above the top of it. The view is now put back on the **first box
+  of what you are left with**, so a folded tree starts at its own beginning and reads downwards from
+  there.
+- **Fit now really shows everyone.** It only ever fitted the *width*: on a 390px phone panel it left a
+  folded 76-person family 334×2188px (55% of it on the panel) and a whole 68-person family 628px wide on
+  a 390px panel — so pressing it repeatedly never showed the bottom or the far side. It now fits **both
+  ways round** (width and height), and its floor no longer stops it fitting a big family: 60% of the tree
+  on the panel before, **100% after** — folded or whole, every person drawn.
+
+### Changed
+- **Expand all** returns you to the readable view the map opens with, instead of leaving the zoom you
+  were using on a page that has just changed size.
+- Opening the map is unchanged: a big family still opens at the readable zoom, so on a phone you are
+  looking at part of it until you press **Fit**, which is what Fit is for.
+
+Verified on the delivered bytes:
+- **10 checks in the browser layout, 0 failed**, at two phone panel sizes (390×640 and 390×1200), on a
+  68-person family in the reported shape — two whole sides, each child's in-law parents and brothers and
+  sisters, joined by **one** marriage. **Control:** the same checks against the build that was shipped
+  fail **4 and 3** of them — the folded box left 2,986px off the panel, the folded family opening in the
+  middle of itself, and Fit leaving the folded family and the whole family off the panel.
+- **7 checks in a real browser** (headless Chrome, 390×844 phone) driving the real buttons and the real
+  ▾: drag the map 3,000px away, fold the marriage, zoom in three steps, drag deep, then **Collapse** and
+  **Fit** — the folded box stays on the panel, the collapsed family starts at the panel, and Fit puts
+  **20 of 20** people of the folded family and **68 of 68** people of the whole family on the panel.
+- **105 existing suites are unchanged** — same result line and same exit code as on the previously
+  shipped build (space 24, link 28, zoom 25, combine 18, badlink 28, badload 11, sidefamily 27,
+  anchoring 18, groups 96, the sweeps, the fuzzers and the shape dumps), so nothing about the drawing,
+  the spacing or the connectors moved.
+
+Two assertions in `space` were restated rather than loosened. They ask *“the default view keeps names
+readable (≥9px)”* and *“and never zooms out past the readable floor”*, but reached the default view by
+pressing **Fit** — which passed only because Fit used to be capped at the readable floor on the first
+render. Now that Fit does its job and may be smaller than that floor, both checks measure the view the
+map actually opens with, with the same thresholds (≥9px, ≥0.78). The new behaviour they had to state —
+that Fit is smaller than the readable default and still inside the panel — is asserted separately.
+
 ## 2026-10-11 — The Menu no longer offers to delete everyone
 
 ### Removed
