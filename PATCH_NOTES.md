@@ -9,6 +9,62 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-11 — Everyone who has a picture shows it, in their own card
+
+### Fixed
+- **A box holding a couple drew only one of the two pictures, and never inside a card.** The picture was drawn
+  once per box, for the person the box is read through (the earliest born of the pair), floating at the box's left
+  edge — so a husband's or wife's own picture was simply dropped and no card ever showed the picture of the person
+  it belonged to. On the reported shape (two of the five people pictured, one of them the second person in a
+  couple) the tree drew **1 of 2** pictures, and on a couple where only the *younger* partner has one it drew
+  **none**. Now **each person's own picture is drawn inside their own card, immediately before their name**, so
+  everyone who was given a picture shows it: 1 of 2 before, **2 of 2 after**; 0 before, **1 after**; and on the
+  23-person family with everyone pictured, **14 of 23 before, 23 of 23 after**.
+- **A picture no longer eats the room a name was given.** A column is now a whole name column (CW: 64px on a
+  phone, 96px on a wider screen) *plus* the 34px picture and the 6px gap after it whenever that person has one, so
+  no name is narrowed to fit a picture. In a couple where the first person had a picture, both names used to share
+  **39px** of column each (the picture's room was taken out of the names); each column is now **104px** — the full
+  name column, with the picture alongside it. A box with nobody pictured is unchanged (a lone box is still
+  122×84 on a phone).
+
+### Changed
+- A box grows by the picture's width (40px) for each of its columns when anyone in it has a picture: a couple
+  where both are pictured is 282px wide (with a ▾ button) instead of 194. The page therefore gets wider as pictures
+  are added — with all 23 people pictured it grows from 1050px to 1448px — so the tree opens a little smaller in
+  that case; nothing is clipped and **Fit** still shows the whole family at once.
+
+Verified on the exact bytes delivered:
+- **87 new layout checks, 0 failed** — a picture is drawn for each person who has one and for nobody else, inside
+  their own card, before their own name, never outside a card; and a pictured box keeps a whole name column plus
+  the picture's width, so no name is narrowed to fit a picture;
+- **154 browser checks, 0 failed** in a real browser at a 390px-wide phone viewport, both colour schemes — each
+  picture is drawn inside the person's own card and beside (never over) their name, at its full 34px page size at
+  the current zoom, the name is not clipped, and the picture is really painted on the screen (a marker-coloured
+  photo: the centre pixel and at least 55% of its circle are that colour, and a blank picture is refused).
+  **Control:** the same checks against the previously shipped build find **4 pictures for 5 people, none of them
+  inside a card** — that is the bug, and the check catches it;
+- everything else still passes: **78 geometry checks, 0 failed** with **no clipped text**, **414 consistency
+  checks, 0 failed**, **10 pixel checks, 0 failed** in dark and light, and on the layout side **link 28, zoom 25,
+  combine 18, space 24, badlink 28, badload 11, sidefamily 27, anchoring 18, groups 96 — 0 failed**; the
+  4,260-operation sweep introduced no violation, and over 250 random families and the shape sweeps still draw with
+  nothing overlapping, no connector running upward, none through a box and none off the canvas.
+
+Three assertions were restated rather than loosened, and the new behaviour they had to state was verified directly:
+- `space` measured a couple's spare width (`box − lone − gap ≥ 60`) — a proxy that came from an estimate of the
+  box's padding, and which reported 60 even while a pictured couple's names really had only 39px each. It now asks
+  for what it is named after: **every person's own column is at least a whole name column (CW)**;
+- `zoom`'s “dragging up moves the canvas up” assumed the page overhangs the panel by more than the drag; the tree
+  getting slightly narrower left the fitted page only 0.57px taller than a 600px panel, so the check now first
+  requires (and asserts) at least 300px of overhang in both directions, then the drag must still move by exactly
+  the drag distance — the panning itself is unchanged;
+- `pixels` measured how much of a 3px band the card's 1px outline covers, which is decided by where the fractional
+  zoom puts that pixel: it read 0.20 after this change (0.33 before) on a ring that is drawn *exactly*. It now asks
+  for a pixel matching the outline colour anywhere in the band — measured at **difference 0** on both the top and
+  the left edge, where the previous build only reached a blended value.
+
+The picture is drawn from the same 34px circle the card already had; the People list and a person's own card are
+unchanged.
+
 ## 2026-10-10 — Brothers and sisters are drawn in one run, under their own mother and father
 
 ### Changed

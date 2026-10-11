@@ -27,7 +27,7 @@ details,.leaf{margin:4px 0 4px 12px;padding-left:10px;border-left:2px solid var(
 #tt{position:fixed;left:50%;bottom:130px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:9}#tt.on{opacity:1}
 .note{padding:12px 14px;margin:0 0 8px;background:var(--card);border:1px solid var(--line);border-radius:12px}.note div:first-child{white-space:pre-wrap}.cbar{display:flex;align-items:center;gap:10px;margin:4px 0 10px;flex-wrap:wrap}.sel{background:var(--acc);color:var(--onacc);border-radius:6px;padding:1px 6px}textarea{resize:vertical}p{white-space:pre-wrap}
 .grow{flex:1;min-width:0}.av{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--line)}.av.lg{width:104px;height:104px;margin:0 0 6px;display:block}.eb{background:none;border:0;color:var(--mute);font-size:20px;padding:6px 4px;flex:0 0 auto}.phr{display:flex;align-items:center;gap:12px;margin-top:6px;flex-wrap:wrap}.phr .av{width:64px;height:64px}
-.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:row;align-items:flex-start;gap:10px;flex:1 1 auto;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:block;flex:1 1 0;min-width:0;overflow:hidden;overflow-wrap:break-word}.trow.more{color:var(--mute)}
+.nk{color:var(--mute);font-style:italic}.treescroll{position:relative;height:70vh;min-height:260px;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}.treeinner{position:relative;transform-origin:0 0;will-change:transform}.tedge{position:absolute;left:0;top:0;pointer-events:none}.tedge path{fill:none;stroke:var(--line);stroke-width:2}.tnode{position:absolute;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:12px system-ui;box-shadow:0 1px 3px #0001;box-sizing:border-box;overflow:hidden}.tnode.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}.tline{display:flex;flex-direction:row;align-items:flex-start;gap:10px;flex:1 1 auto;min-width:0}.tnode .av{width:34px;height:34px}.tex{background:none;border:1px solid var(--line);border-radius:8px;color:var(--acc);font:600 11px system-ui;padding:2px 6px;margin-left:auto;flex:0 0 auto}.trow{display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0;overflow:hidden;overflow-wrap:break-word}.trow.more{color:var(--mute)}
 .tnode.multi{padding:2px 10px;border-color:transparent;background:transparent}.tnode.multi .tline{align-self:stretch;align-items:stretch}.tnode.multi .trow{display:flex;align-items:center;outline:1px solid var(--line);outline-offset:-1px;border-radius:8px;background:var(--card)}.cw{flex:1 1 auto;min-width:0}.mar{position:absolute;top:50%;margin-top:-1px;width:10px;height:2px;background:var(--line);pointer-events:none}.treeinner.zo .tnode{font:13px system-ui}.treeinner.zo .tnode small{display:none}.orow{display:flex;align-items:center;gap:6px;padding:8px 2px;border-bottom:1px solid var(--line)}.orow:last-child{border-bottom:0}.orow .tex{margin-left:0;min-width:26px}.tl{width:26px;flex:0 0 auto;display:inline-block}.tscroll{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:6px 10px;overflow:auto}
 </style></head><body>
 <div id="top"><div><h1>Family Tree</h1><small id="cnt"></small><button id="rf" class="ib" aria-label="Check for update">⟳</button><button id="mn" class="ib" aria-label="Menu">⋮</button></div>
@@ -137,25 +137,31 @@ const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.
 const oline=(n,d,ss)=>{if(ss.has(n.r))return '';ss.add(n.r);const k=n.kids.length,open=!col.has(n.r);return `<div class="orow" style="padding-left:${Math.min(d,10)*14}px">${k?`<button class="tex" data-exp="${n.r}">${open?'▾':'▸'}</button>`:'<span class="tl"></span>'}<span class="n" data-id="${n.p.id}">${h(n.p.name)}</span>${n.p.nick?` <small class="nk">“${h(n.p.nick)}”</small>`:''} <small>${life(n.p)}</small>${n.ps.length?` <small>⚭ ${n.ps.map(x=>`<span class="n" data-id="${x.id}">${h(x.name)}</span>`).join(', ')}</small>`:''}${k?` <small>(${k})</small>`:''}</div>${open?n.kids.map(c=>oline(c,d+1,ss)).join(''):''}`};
 let TW=176,TH=72,TGX=28,TGY=56,CW=140;
 const ROW=20,MAXROW=10;                    // a name that wraps needs a line; the box grows taller for it
-const TGAP=44,COLGAP=10,CHROME=56;         // people in a box sit side by side, so it grows wider instead
+const TGAP=44,COLGAP=10,AVW=40;            // a person's own photo (34px) and the gap after it, inside their own card
 // A connector leaves the name of the person who is the parent and arrives at the name of the person who
 // is the child, so a line into a box that holds a couple points at the one name it belongs to instead of
 // landing between the two and reading as the parents of the pair. When both parents share the one box
 // the two ends average out, so a line the couple really shares still leaves the middle of the pair. A
 // name sits between the photo on the left and the ▾ button on the right, so where it is drawn is
-// measured from that rather than from the edge of the box.
+// measured from that rather than from the edge of the box. A person's photo is drawn inside their own
+// card, so that is what shifts a name along in a box holding a couple.
 const edgeX=(o,ids)=>{const c=i=>{const j=o.mem?o.mem.findIndex(x=>x.id===i):-1;
- return j<0||j>=o.cols?(o.il+o.w-o.ir)/2:o.il+j*(o.cw+COLGAP)+o.cw/2};
+ if(j<0||j>=o.cols)return (o.il+o.w-o.ir)/2;
+ const ph=o.mem[j].photo?AVW:0;                    // a person's own photo is drawn inside their own card, before their name
+ return o.il+j*(o.cw+COLGAP)+(o.cw+ph)/2};
  let s=0,k=0;ids.forEach(i=>{s+=c(i);k++});return o.px+(k?s/k:(o.w||TW)/2)};
 function tlayout(list){
  // partners get a column each, side by side: no two names can ever be drawn over one another
  list.forEach(n=>{const shown=n.mem.length>MAXROW?n.mem.slice(0,MAXROW-1):n.mem,more=n.mem.length>MAXROW?1:0;
   n.cols=shown.length+more;
-  n.w=Math.max(TW,CHROME+n.cols*CW+(n.cols-1)*COLGAP);
-  n.il=11+(n.p.photo?42:0);n.ir=11+(n.kids.length?42:0);          // photo on the left, ▾ button on the right
+  n.il=11;n.ir=11+(n.kids.length?42:0);                           // ▾ button on the right
+  // Everyone's own photo is drawn inside their own card, before their name, so a column makes room for
+  // a photo whenever anyone in the box has one — nobody's name is squeezed to fit someone else's photo.
+  const cw1=CW+(shown.some(x=>x.photo)?AVW:0);
+  n.w=Math.max(TW,n.il+n.ir+n.cols*cw1+(n.cols-1)*COLGAP);
   n.cw=Math.max(20,(n.w-n.il-n.ir-(n.cols-1)*COLGAP)/n.cols);
-  const colw=Math.max(40,(n.w-CHROME-(n.cols-1)*COLGAP)/n.cols),CPL=Math.max(6,Math.floor(colw/6.8)),
-   lines=x=>1+(x.name.length+(x.nick?x.nick.length+3:0)>CPL?1:0);
+  const lines=x=>{const CPL=Math.max(6,Math.floor((n.cw-(x.photo?AVW:0))/6.8));
+   return 1+(x.name.length+(x.nick?x.nick.length+3:0)>CPL?1:0)};
   n.h=Math.max(TH,16+ROW*shown.reduce((s,x)=>Math.max(s,lines(x)),1))});
  const N=new Map(list.map(n=>[n.r,n])),seen=new Set(),comps=[];
  list.forEach(n=>{if(seen.has(n.r))return;const st=[n.r],c=[];seen.add(n.r);
@@ -225,13 +231,13 @@ function tlayout(list){
    edges.push(Object.assign([pos.get(q),pos.get(n)],{rel}))}));
   top+=y+TGAP;W=Math.max(W,accW-TGX)});
  return {nodes:outN,edges,pos,W:W+8,H:Math.max(140,top-TGAP)}}
-const trow=x=>`<div class="trow"><span class="cw"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></span></div>`;
+const trow=x=>`<div class="trow">${ava(x)}<span class="cw"><span class="n" data-id="${x.id}">${h(x.name)}</span>${x.nick?` <small class="nk">“${h(x.nick)}”</small>`:''} <small>${life(x)}</small></span></div>`;
 const tbox=(n,o,k)=>{const rows=n.mem.length>MAXROW?[...n.mem.slice(0,MAXROW-1),null]:n.mem;   // more people than fit: say how many
  // A box holding a couple draws each person in their own card with a marriage bar between them, so a
  // connector can be seen to touch one person's card instead of the middle of the pair.
  const pair=n.mem.length>1,
   bars=pair?n.mem.slice(1,MAXROW).map((_,i)=>`<span class="mar" style="left:${(n.il+(i+1)*(n.cw+COLGAP)-COLGAP/2-5).toFixed(1)}px"></span>`).join(''):'';
- return `<div class="tnode${pair?' multi':''}${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${o.w}px;height:${o.h}px">${ava(n.p)}<div class="tline">${rows.map(x=>x?trow(x):`<div class="trow more">+${n.mem.length-MAXROW+1} more</div>`).join('')}</div>${bars}${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`};
+ return `<div class="tnode${pair?' multi':''}${n.p.id===selA?' sel':''}" style="left:${o.px}px;top:${o.py}px;width:${o.w}px;height:${o.h}px"><div class="tline">${rows.map(x=>x?trow(x):`<div class="trow more">+${n.mem.length-MAXROW+1} more</div>`).join('')}</div>${bars}${k?`<button class="tex" data-exp="${n.r}">${col.has(n.r)?'▸':'▾'} ${k}</button>`:''}</div>`};
 function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if(tab=='notes'){notesView(m);return}
  if(!P.length){m.innerHTML='<div class="empty"><p>No one here yet.</p><button class="btn p" data-act="add">Add first person</button> <button class="btn" data-t="notes">Start with notes</button></div>';return}
  if(tab=='tree'){const full=build(),kc=new Map();full.forEach(n=>kc.set(n.r,n.kids.length));
