@@ -1,10 +1,12 @@
 package com.familytree.app
 
 import android.annotation.SuppressLint
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -50,6 +52,9 @@ class MainActivity : AppCompatActivity() {
     }
     private val pdfL = saver("application/pdf")
     private val jsonL = saver("application/json")
+    // Android 13 and later asks the person before a notification may be shown, so the ask happens when
+    // birthday reminders are turned on — never at install time.
+    private val notifL = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     private val pickL = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val u = r.data?.data ?: r.data?.clipData?.getItemAt(0)?.uri
         chooser?.onReceiveValue(if (r.resultCode == Activity.RESULT_OK && u != null) arrayOf(u) else null)
@@ -80,6 +85,19 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun photo() { runOnUiThread { takePhoto() } }
 
+        // the Birthdays page hands over the birthdays to remind about — the day and month of each
+        // living person — and whether reminders are wanted at all
+        @JavascriptInterface
+        fun bdays(on: Boolean, json: String) {
+            Birthdays.save(this@MainActivity, json)
+            runOnUiThread {
+                Birthdays.set(this@MainActivity, on)
+                if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                    notifL.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         // the ⟳ button in the app: check for an OTA update and reload straight away
         @JavascriptInterface
         fun refresh() {
@@ -105,6 +123,7 @@ class MainActivity : AppCompatActivity() {
         val installed = packageManager.getPackageInfo(packageName, 0).lastUpdateTime
         if (otaFile.exists() && otaFile.lastModified() < installed) otaFile.delete()
         shotDir.listFiles()?.forEach { it.delete() }        // a picture from an earlier run is never needed
+        if (Birthdays.isOn(this)) Birthdays.schedule(this)   // reminders survive a restart; make sure the daily check is there
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
             .addPathHandler("/ota/", WebViewAssetLoader.InternalStoragePathHandler(this, otaDir))

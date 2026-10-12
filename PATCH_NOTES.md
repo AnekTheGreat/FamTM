@@ -9,6 +9,91 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-12 — A birthday reminder for everyone who is alive
+
+Half a page change and half a native one: the page arrives over the air, but a notification is the
+phone's own work, so this one also needs the new APK (**1.2**, versionCode 3).
+
+### Added
+- **Birthdays** in the menu (⋮): everyone alive whose born date has a day and month, soonest first, with
+  how far off it is — *today*, *tomorrow*, *in 12 days* — and the age they turn when a year was given.
+  Tapping a name opens that person.
+- **Remind me on the day** in that page. Turned on, the phone puts one quiet notification on the screen
+  in the morning of each living person's birthday — *“🎂 Neelu Chopra’s birthday · Turning 46 today”* —
+  whether the app is open or not.
+  - Only the **day and month** of each living person is handed to the phone, so the date comes round on
+    its own every year and nothing has to be sent again. The names never leave the phone.
+  - Someone with a **Died** date is never included. A born date with only a year (or none) has no day to
+    keep, so it is skipped, and the page says how to give one.
+  - Android 13 and later asks for notification permission at the moment reminders are turned on;
+    nothing is asked for at install time. The daily check runs shortly after 9am (the exact minute is
+    the phone's own choice), and the phone may hold it back a while on a battery-saving day.
+- An app older than this page says *Update the app first (⟳ in the top bar)* instead of offering a
+  toggle that could not work.
+
+### Changed
+- The list the phone holds is refreshed whenever the family changes — adding, editing, deleting, or
+  restoring a backup — so a birthday added today is reminded from the next morning on.
+
+## 2026-10-12 — Cousins, aunts and uncles, nieces and nephews, and no example dates in the form
+
+A page change: it arrives over the air, nothing to install.
+
+### Added
+- **The rest of the family.** A person's own page now offers, beside **+ Parent / + Partner / + Child /
+  + Brother / Sister**:
+  - **+ Aunt / Uncle** — a brother or sister of one of their parents. With two parents it asks which side.
+  - **+ Niece / Nephew** — a child of one of their brothers or sisters.
+  - **+ Cousin** — a child of one of their aunts or uncles.
+  - **+ Grandparent** — a parent of one of their parents.
+  - **+ Grandchild** — a child of one of their children.
+
+  Every one of these is only the links a family already has (a parent, or a shared parent), so nothing
+  new is ever stored: the new person appears straight away in the right section of *both* pages — a new
+  cousin is listed under **Cousins** on their page and on yours.
+- **Link someone already added** gained **Pick an aunt / uncle**, **Pick a niece / nephew** and **Pick a
+  cousin** for people who are already in the tree. A brother or sister is never offered as an aunt, a
+  niece or a cousin.
+- **Connect people** on the tree now also offers "is an aunt or uncle of", "is a niece or nephew of" and
+  "They are cousins".
+- When more than one relative could hold the new person, the app asks which one (e.g. *Whose brother or
+  sister?*) instead of guessing; when the family has nobody for them to hang off yet it says what to add
+  first (e.g. *Add Neelu's father or mother first – a cousin is their child*) rather than inventing one.
+
+### Changed
+- **No example dates in the form.** Born no longer shows *7/4, 4 Jul 1950 (year optional)* and Died no
+  longer shows *7/4 or 4 Jul 1950 – blank if living* (which was being cut off mid-word in the
+  half-width box); Nickname's hint is just **optional**. Dates read exactly as before, year or no year,
+  and a date it cannot read is still refused with the formats spelled out.
+- A message about something done inside a dialog is now shown **over** the dialog instead of behind it,
+  so a refusal is actually readable.
+- Tapping a person, a name or a **▾** in the tree with a mouse now works: while the panel is watching for
+  a drag the browser can send it the click itself, and the panel hands that click to whoever is really
+  under the pointer.
+
+### Unchanged
+- The stored format. Every new relative is written as the ordinary parent links the family already uses,
+  so a backup from any earlier version restores into this one and this one's backups restore into it.
+
+Verified on the delivered bytes:
+- **36 checks driving the real page in a real browser** (a seeded family, the real buttons): the new
+  relatives are offered; an aunt asks which parent and is stored as that parent's brother or sister; a
+  niece or nephew is stored as the child of the brother or sister; a cousin as the child of the aunt or
+  uncle, and listed under Cousins on both pages; a grandparent as a parent of the parent chosen; a
+  grandchild as a child of the child chosen; the "pick someone already added" path for a cousin; a
+  brother or sister is not offered as an aunt; the tree's Connect people can say two people are cousins
+  (and refuses the way round that has nothing to hang off); and the family still draws. 0 failed. The
+  same suite fails the same way on the previous build, so it is measuring the change and not the page.
+- **11 checks on the form itself:** no example in Born, *blank if living* in Died, *optional* in
+  Nickname, nothing saved from a hint, a bare "7/4" still saved and written out as *Jul 4*, editing
+  shows the date in the box, and a bad date still names the formats it accepts. 0 failed.
+- **10 checks measuring the page** (rendered at 390px and at 320px): all eight new buttons fit inside the
+  dialog, none lands on another, and each is exactly the size of the chips that were already there. 0
+  failed.
+- **The 105 existing model suites are byte-for-byte unchanged**, and all **39 existing browser suites**
+  give the same result as before (the same pass counts, or the same pre-existing failures), apart from
+  the new ones, which fail on the previous build as a control.
+
 ## 2026-10-11 — Take a photo with the camera, and change a picture from the person's own page
 
 This one has two halves: **the page comes over the air as usual, and the camera needs the new APK**

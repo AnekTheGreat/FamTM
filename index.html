@@ -86,7 +86,38 @@ const normDate=v=>{v=String(v??'').trim();if(!v)return'';let m,mo,d,y=null;
  return y==null?'--'+pad2(mo)+(d!=null?'-'+pad2(d):''):String(y)+'-'+pad2(mo)+(d!=null?'-'+pad2(d):'')};
 const shrink=(f,cb,no)=>{const fail=()=>no&&no();const r=new FileReader();r.onerror=fail;r.onload=()=>{const i=new Image();i.onerror=fail;i.onload=()=>{const s=240,m=Math.min(s/i.width,s/i.height,1),cv=document.createElement('canvas');cv.width=Math.round(i.width*m)||s;cv.height=Math.round(i.height*m)||s;cv.getContext('2d').drawImage(i,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72))};i.src=r.result};r.readAsDataURL(f)};
 const ava=p=>p.photo?`<img class="av" src="${p.photo}" alt="">`:'';
-const say=m=>{const t=$('#tt');t.textContent=m;t.className='on';setTimeout(()=>t.className='',2200)};
+// A message about something done in a dialog has to be readable: a toast left in the page is painted
+// behind an open dialog, so while one is open the toast lives inside it, and a dialog that redraws
+// itself hands the toast back to the page rather than throwing the message away.
+const say=m=>{const o=document.querySelector('dialog[open]');let t=$('#tt');
+ if(!t){t=document.createElement('div');t.id='tt'}
+ t.textContent=m;t.className='on';(o||document.body).append(t);setTimeout(()=>t.className='',2200)};
+// ---- birthdays: everyone alive whose born date has a day and month. Only the day and month of each
+// living person is ever handed to the phone, so a birthday comes round again on its own every year and
+// nothing has to be sent again. The app on the phone wakes once a day and puts a quiet notification on
+// the screen for whoever's birthday it is; when the app on the phone is older than this page, the
+// feature says so instead of pretending to work.
+const bdOf=p=>{const m=/^(?:([0-9]{4})-|--)([0-9]{2})-([0-9]{2})$/.exec(str(p.birth));if(!m)return null;
+ const mo=+m[2],d=+m[3];return mo>=1&&mo<=12&&d>=1&&d<=31?{mo,d,y:m[1]?+m[1]:0}:null};
+const bdList=()=>P.filter(p=>!str(p.death)).map(p=>({p,b:bdOf(p)})).filter(x=>x.b);
+const bdOn=()=>{try{return localStorage.getItem(KEY+'.bdays')=='1'}catch(e){return false}};
+const bdSet=on=>{try{localStorage.setItem(KEY+'.bdays',on?'1':'0')}catch(e){}};
+// 'native' when this phone's app can do it, 'old' when the app is older than this page, 'web' in a browser
+const bdCap=()=>{try{const A=window.Android;if(!A)return 'web';return typeof A.bdays=='function'?'native':'old'}catch(e){return 'web'}};
+const bdNext=()=>{const now=new Date();now.setHours(0,0,0,0);const y=now.getFullYear();
+ return bdList().map(x=>{let t=new Date(y,x.b.mo-1,x.b.d);if(t.getTime()<now.getTime())t=new Date(y+1,x.b.mo-1,x.b.d);
+  return{x:x.b,p:x.p,d:Math.round((t-now)/864e5),when:t}}).sort((a,b)=>a.d-b.d)};
+const bdPush=()=>{if(bdCap()!='native')return;try{window.Android.bdays(bdOn(),JSON.stringify(bdList().map(x=>({n:x.p.name,m:x.b.mo,d:x.b.d,y:x.b.y}))))}catch(e){}};
+const bdWhen=d=>d==0?'today':d==1?'tomorrow':'in '+d+' days';
+const bdTurns=x=>x.x.y&&x.x.y<=x.when.getFullYear()?' · turns '+(x.when.getFullYear()-x.x.y):'';
+function bdaysView(){const L=bdNext();
+ show(`<h2>Birthdays</h2><p class="m">Everyone here who is alive and whose born date has a day and month.</p>`+
+  (L.length?`<div class="tscroll">${L.slice(0,40).map(x=>`<button class="card" data-go="${x.p.id}"><span class="grow"><b>${h(x.p.name)}</b><br><small>${x.when.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}${bdTurns(x)}</small></span><small>${bdWhen(x.d)}</small></button>`).join('')}</div>`:'<p class="m">No birthdays yet – give someone a born date with a day and month, like 4 Jul or 7/4.</p>')+
+  `<h3>Remind me on the day</h3>`+(bdCap()=='native'
+   ?`<button class="btn${bdOn()?' p':''}" data-act="bdtog" style="width:100%">${bdOn()?'On – a notification on the day':'Off – tap to turn reminders on'}</button><p class="m">One quiet notification in the morning of each birthday, sent by this phone. It works even when the app is closed, and the names never leave the phone.</p>`
+   :bdCap()=='old'?`<p class="m">Update the app first (⟳ in the top bar) – the version on this phone is older than this page.</p>`
+   :`<p class="m">Birthday reminders are sent by the Family Tree app on your phone.</p>`)+
+  `<div class="bar"><span></span><button class="btn" data-act="close">Close</button></div>`)}
 // ---- pictures: they come from the phone's photos, from Files, or straight from the camera ----
 const picBad=()=>say('That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead');
 let picFor=null;                  // where the next picture belongs: the open form, or a person's own page
@@ -100,7 +131,7 @@ const savePhoto=(id,d)=>{const q=M.get(id);if(!q)return;q.photo=d;commit();detai
 // the app hands back a picture it has just taken, as an address this page is allowed to read
 window.__photo=u=>fetch(u).then(r=>r.blob()).then(picIn).catch(picBad);
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
-function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}index();render()}
+function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}index();render();bdPush()}
 const desc=id=>{const s=new Set,st=[id];while(st.length)for(const c of C.get(st.pop())||[])if(!s.has(c.id)){s.add(c.id);st.push(c.id)}return s};
 const ancIds=id=>{const s=new Set,st=[...parIds(id)];while(st.length){const c=st.pop();if(s.has(c))continue;s.add(c);(M.get(c)&&M.get(c).parents||[]).forEach(q=>st.push(q))}return s};
 // Why a family can't be drawn: someone is their own ancestor, a partner is also a parent/child,
@@ -151,6 +182,36 @@ const uncIds=id=>uniq(parIds(id).flatMap(i=>sibIds(i))).filter(x=>x!==id&&!parId
 const nieIds=id=>uniq(sibIds(id).flatMap(i=>kidIds(i)));
 const couIds=id=>uniq(uncIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id&&!nieIds(id).includes(x)&&!sibIds(id).includes(x));
 const sibLink=(a,b)=>{if(a.parents.some(p=>b.parents.includes(p)))return '';const tryAdd=(s,d)=>{const p=s.parents.find(x=>d.parents.length<2&&!d.parents.includes(x)&&!desc(d.id).has(x)&&x!==d.id);return p?(d.parents.push(p),true):false};if(a.parents.length&&tryAdd(a,b))return '';if(b.parents.length&&tryAdd(b,a))return '';if(a.parents.length<2&&b.parents.length<2){const nid=uid(),u={id:nid,name:'Unknown',nick:'',birth:'',death:'',note:'',parents:[],partners:[]};P.push(u);a.parents.push(nid);b.parents.push(nid);return ''}return 'No room to add a shared parent'};
+// The relatives the family already implies. Which one a new relation hangs off, and how the new person
+// is built onto them: an aunt or uncle is a brother or sister of a parent, a niece or nephew is a child
+// of a brother or sister, a cousin is a child of an aunt or uncle, a grandparent is a parent of a parent
+// and a grandchild is a child of a child. Every one of them is made of the two links a family already
+// has — a parent and a partner — so nothing extra is ever stored and each person's own page sorts them
+// into the section they belong in.
+const RANC={au:id=>parIds(id),nn:id=>sibIds(id),co:id=>uncIds(id),gp:id=>parIds(id),gc:id=>kidIds(id)},
+ RHOW={au:'sib',nn:'down',co:'down',gp:'up',gc:'down'},RTIE={sib:'sb',up:'pa',down:'ch'},
+ RELINK={sb:'brother or sister of',pa:'parent of',ch:'child of'},
+ RASK={au:'Whose brother or sister?',nn:'Whose child?',co:'Whose child?',gp:'Whose parent?',gc:'Whose child?'},
+ RNONE={au:p=>'Add '+p.name+'’s father or mother first – their brother or sister is the aunt or uncle',
+  nn:p=>'Add a brother or sister of '+p.name+' first – a niece or nephew is their child',
+  co:p=>'Add a brother or sister of '+p.name+'’s father or mother first – a cousin is their child',
+  gp:p=>'Add '+p.name+'’s father or mother first – their own parent is the grandparent',
+  gc:p=>'Add a child of '+p.name+' first – their child is the grandchild'};
+// Attach someone to one relative: up makes them that relative's parent, down makes them their child and
+// sib makes them their brother or sister. Someone already linked there is left as they are, and a link
+// that would loop the family back on itself is refused rather than written down.
+const rAtt=(o,a,how)=>{const an=M.get(a.id)||a,nm=an.name||'they';
+ if(how=='sib')return sibLink(o,an);
+ if(an.id===o.id)return 'Same person';
+ const loop=desc(o.id).has(an.id)||ancIds(o.id).has(an.id);
+ if(how=='up'){if(an.parents.includes(o.id))return '';
+  if(an.parents.length>=2)return nm+' already has two parents';
+  if(loop)return 'That would loop the family back on itself';
+  an.parents.push(o.id);return ''}
+ if(o.parents.includes(an.id))return '';
+ if(o.parents.length>=2)return (o.name||'they')+' already has two parents';
+ if(loop)return 'That would loop the family back on itself';
+ o.parents.push(an.id);return ''};
 function build(){
  const uf=new Map(),find=a=>{let r=a;while(uf.get(r)!==r)r=uf.get(r);while(uf.get(a)!==r){const n=uf.get(a);uf.set(a,r);a=n}return r};
  P.forEach(p=>uf.set(p.id,p.id));
@@ -333,20 +394,20 @@ function render(){$('#cnt').textContent=P.length+' people';const m=$('#main');if
   gW=W;gH=H;clampView(vpEl);applyView($('#ti'));panzoom(vpEl,$('#ti'));return}
  const s=qs.toLowerCase(),a=P.filter(p=>p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s)).sort((a,b)=>a.name.localeCompare(b.name));
  m.innerHTML=a.map(p=>`<div class="card" data-id="${p.id}">${ava(p)}<span class="grow"><b>${h(p.name)}</b>${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}${p.parents.length?`<br><small>Child of ${p.parents.map(i=>{const q=M.get(i);return h(q?.name)+(q&&(q.birth||q.death)?' '+life(q):'')}).join(' & ')}</small>`:''}</span><small>${life(p)}</small><button class="eb" data-act="edit" data-pid="${p.id}" aria-label="Edit">✎</button></div>`).join('')||'<p class="m">No matches</p>'}
-const show=t=>{const d=$('#dlg');d.innerHTML=t;d.open||d.showModal();d.scrollTop=0};
+const show=t=>{const d=$('#dlg'),tt=$('#tt');if(tt&&tt.parentNode!==document.body)document.body.append(tt);d.innerHTML=t;d.open||d.showModal();d.scrollTop=0};
 const chip=x=>`<button class="chip" data-go="${x.id}">${h(x.name)} <small>${life(x)}</small></button>`;
 function detail(id){const p=M.get(id);if(!p)return;const sec=(t,a)=>a.length?`<h3>${t}</h3>${a.map(chip).join('')}`:'';const pp=a=>[...new Set(a)].map(i=>M.get(i)).filter(Boolean),pid=`data-pid="${id}"`;
  show(`${p.photo?`<img class="av lg" src="${p.photo}" alt="">`:''}<h2>${h(p.name)}${p.nick?` <small class="nk">“${h(p.nick)}”</small>`:''}</h2><p class="m">${[p.birth&&'Born '+fmt(p.birth),p.death&&'Died '+fmt(p.death),age(p)].filter(Boolean).join(' · ')||'No dates'}</p><div class="bar"><button class="chip" data-act="shot" ${pid}>${p.photo?'Change photo':'Add photo'}</button>${camOK()?`<button class="chip" data-act="shotcam" ${pid}>Take photo</button>`:''}</div>${p.note?`<p>${h(p.note)}</p>`:''}${sec('Parents',pp(p.parents))}${sec('Partners',pp(p.partners))}${sec('Children',pp(kidIds(id)))}${sec('Siblings',pp(sibIds(id)))}${sec('Grandparents',pp(gpIds(id)))}${sec('Grandchildren',pp(gcIds(id)))}${sec('Aunts & Uncles',pp(uncIds(id)))}${sec('Nieces & Nephews',pp(nieIds(id)))}${sec('Cousins',pp(couIds(id)))}
- <h3>Add a new person</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button><button class="chip" data-act="addsib" ${pid}>+ Brother / Sister</button>
- <h3>Link someone already added</h3>${p.parents.length<2?`<button class="chip" data-link="par" ${pid}>Pick a parent</button>`:''}<button class="chip" data-link="prt" ${pid}>Pick a partner</button><button class="chip" data-link="kid" ${pid}>Pick a child</button><button class="chip" data-link="sib" ${pid}>Pick a brother / sister</button><button class="chip" data-link="gp" ${pid}>Pick a grandparent</button><button class="chip" data-link="gc" ${pid}>Pick a grandchild</button>
+ <h3>Add a new person</h3>${p.parents.length<2?`<button class="chip" data-act="addpar" ${pid}>+ Parent</button>`:''}<button class="chip" data-act="addprt" ${pid}>+ Partner</button><button class="chip" data-act="addkid" ${pid}>+ Child</button><button class="chip" data-act="addsib" ${pid}>+ Brother / Sister</button><button class="chip" data-act="addau" ${pid}>+ Aunt / Uncle</button><button class="chip" data-act="addnn" ${pid}>+ Niece / Nephew</button><button class="chip" data-act="addco" ${pid}>+ Cousin</button><button class="chip" data-act="addgp" ${pid}>+ Grandparent</button><button class="chip" data-act="addgc" ${pid}>+ Grandchild</button>
+ <h3>Link someone already added</h3>${p.parents.length<2?`<button class="chip" data-link="par" ${pid}>Pick a parent</button>`:''}<button class="chip" data-link="prt" ${pid}>Pick a partner</button><button class="chip" data-link="kid" ${pid}>Pick a child</button><button class="chip" data-link="sib" ${pid}>Pick a brother / sister</button><button class="chip" data-link="au" ${pid}>Pick an aunt / uncle</button><button class="chip" data-link="nn" ${pid}>Pick a niece / nephew</button><button class="chip" data-link="co" ${pid}>Pick a cousin</button><button class="chip" data-link="gp" ${pid}>Pick a grandparent</button><button class="chip" data-link="gc" ${pid}>Pick a grandchild</button>
  <div class="bar"><span></span><button class="btn" data-act="edit" ${pid}>Edit</button><button class="btn p" data-act="close">Done</button></div>`)}
 function picker(ex,cb){const k=$('#pick');k.innerHTML='<input id="ps" placeholder="Search by name…" autocomplete="off"><div id="pl" style="margin-top:10px"></div><div class="bar"><span></span><button class="btn" id="pc">Cancel</button></div>';
  const go=()=>{const s=$('#ps').value.toLowerCase(),a=P.filter(p=>!ex.has(p.id)&&(p.name.toLowerCase().includes(s)||(p.nick||'').toLowerCase().includes(s))).sort((a,b)=>a.name.localeCompare(b.name));
   $('#pl').innerHTML=a.slice(0,50).map(x=>`<button class="card" data-p="${x.id}"><b>${h(x.name)}</b><small>${life(x)}</small></button>`).join('')+(a.length>50?`<p class="m">${a.length-50} more – keep typing</p>`:a.length?'':'<p class="m">No matches</p>')};
  $('#ps').oninput=go;$('#pl').onclick=e=>{const b=e.target.closest('[data-p]');if(b){k.close();cb(b.dataset.p)}};$('#pc').onclick=()=>k.close();go();k.showModal()}
 function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',note:'',parents:[],partners:[],...pre.f},st={par:[...p.parents],prt:[...p.partners],kid:(id?kidIds(id):[])};
- show(`<h2>${e?'Edit person':'Add person'}</h2><div class="g2"><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label><label>Nickname<input id="fk" value="${h(p.nick)}" placeholder="optional – fine on its own" autocomplete="off"></label></div>
- <div class="g2"><label>Born<input id="fb" value="${h(fmt(p.birth))}" placeholder="7/4, 4 Jul 1950 (year optional)"></label><label>Died<input id="fd" value="${h(fmt(p.death))}" placeholder="7/4 or 4 Jul 1950 – blank if living"></label></div>
+ show(`<h2>${e?'Edit person':'Add person'}</h2><div class="g2"><label>Name<input id="fn" value="${h(p.name)}" autocomplete="off"></label><label>Nickname<input id="fk" value="${h(p.nick)}" placeholder="optional" autocomplete="off"></label></div>
+ <div class="g2"><label>Born<input id="fb" value="${h(fmt(p.birth))}"></label><label>Died<input id="fd" value="${h(fmt(p.death))}" placeholder="blank if living"></label></div>
  <label>Notes<textarea id="fo" rows="2">${h(p.note)}</textarea></label>
  <h3>Photo</h3><div class="phr"><span id="pv">${p.photo?`<img class="av" src="${p.photo}" alt="">`:''}</span><button class="btn" id="fp" type="button">${p.photo?'Change':'Add photo'}</button>${camOK()?`<button class="btn" id="ft" type="button">Take photo</button>`:''}<button class="btn d" id="fr" type="button"${p.photo?'':' hidden'}>Remove</button></div><input type="file" id="ff" accept="image/*" hidden>
  <h3>Parents</h3><div id="rp"></div><h3>Partners</h3><div id="rt"></div><h3>Children</h3><div id="rc"></div><p class="er" id="er"></p>
@@ -366,12 +427,16 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
   const bad=!name?'Add a name or a nickname.':b===null||d===null?'Dates look like 7/4, 4 Jul 1950 or 1950 – the year can be left out.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
   if(bad){$('#er').textContent=bad;return}
   const o=e||{id:uid()};Object.assign(o,{name,nick,birth:b,death:d,note:$('#fo').value.trim(),parents:st.par,partners:st.prt});if(ph)o.photo=ph;else delete o.photo;if(!e)P.push(o);
-  if(pre.sib&&M.get(pre.sib)){const er=sibLink(M.get(pre.sib),o);if(er)say(er)}
+  let late='';        // what the app has to say about the link is said once the person's own page is up, or that page drops it
+  if(pre.sib&&M.get(pre.sib)){const er=sibLink(M.get(pre.sib),o);if(er)late=er}
   P.forEach(x=>{if(x===o)return;const has=x.partners.includes(o.id),want=st.prt.includes(x.id);if(want&&!has)x.partners.push(o.id);if(!want&&has)x.partners=x.partners.filter(i=>i!==o.id)});
   st.kid.forEach(cid=>{const k=M.get(cid);if(k&&k.id!==o.id&&k.parents.length<2&&!k.parents.includes(o.id)&&!desc(o.id).has(cid))k.parents.push(o.id)});
   (C.get(o.id)||[]).forEach(k=>{if(!st.kid.includes(k.id))k.parents=k.parents.filter(x=>x!==o.id)});
   const c=pre.child&&M.get(pre.child);if(c&&c.parents.length<2&&!c.parents.includes(o.id))c.parents.push(o.id);
-  if(pre.fromNote)N=N.filter(n=>n.id!==pre.fromNote);commit();if(again)form();else detail(o.id)};
+  if(pre.rel){index();const a=M.get(pre.rel.id),er=a?applyLink(o,a,pre.rel.t):'Added';      // the relation this person was added for
+  late=er||('Added '+o.name+' as '+RELINK[pre.rel.t]+' '+a.name)}
+ if(pre.fromNote)N=N.filter(n=>n.id!==pre.fromNote);commit();if(again)form();else detail(o.id);
+ if(late)say(late)};
  $('#fs').onclick=()=>doSave(false);if(!e)$('#fna').onclick=()=>doSave(true)}
 const dl=(blob,n)=>{if(window.Android){const r=new FileReader();r.onload=()=>Android.save(n,String(r.result).split(',')[1]);r.readAsDataURL(blob);return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=n;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4e3)};
 const esc=s=>String(s).replace(/[\u2013\u2014]/g,'-').replace(/[^\x20-\x7e\xa0-\xff]/g,'?').replace(/[\\()]/g,'\\$&');
@@ -411,15 +476,19 @@ function panzoom(vp,ti){const pts=new Map();let base=null,moved=false;
   clampView(vp);applyView(ti);e.preventDefault()});
  const up=e=>{pts.delete(e.pointerId);sync()};
  vp.addEventListener('pointerup',up);vp.addEventListener('pointercancel',up);
- vp.addEventListener('click',e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
+ vp.addEventListener('click',e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false;return}
+  // While a drag is being watched the browser can send the click to this panel itself instead of to the
+  // person under the finger, so a click that arrives on the panel is handed to whoever is really there.
+  if(e.target===vp){const el=document.elementFromPoint(e.clientX,e.clientY),c=el&&el.closest('[data-id],[data-act],[data-exp],[data-link]');if(c&&c!==vp)c.click()}},true);
  vp.addEventListener('wheel',e=>{const r=vp.getBoundingClientRect(),ox=(e.clientX-r.left-tx)/sc,oy=(e.clientY-r.top-ty)/sc;
   sc=Math.max(.12,Math.min(3,sc*(e.deltaY<0?1.12:.89)));tx=(e.clientX-r.left)-ox*sc;ty=(e.clientY-r.top)-oy*sc;
   clampView(vp);applyView(ti);e.preventDefault()},{passive:false})}
 const refresh=()=>{const A=window.Android;if(A&&A.refresh)A.refresh();else{say('Checking for the latest version…');setTimeout(()=>location.reload(),600)}};
-function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn" data-act="close">Close</button></div>`)}
-function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);
- ({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
- addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{fitAll=1;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();sc=null;tx=null;ty=null;firstMap=1;render()},colall:()=>{P.forEach(p=>col.add(p.id));tx=null;ty=null;anchorFirst=1;render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
+function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn" data-act="bdays">Birthdays</button><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn" data-act="close">Close</button></div>`)}
+function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),bdays:()=>bdaysView(),
+ bdtog:()=>{const on=!bdOn();bdSet(on);bdPush();bdaysView();say(on?'On – you’ll get a notification on each birthday':'Birthday reminders off')},edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
+ addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),
+ addau:()=>addRel('au',pid),addnn:()=>addRel('nn',pid),addco:()=>addRel('co',pid),addgp:()=>addRel('gp',pid),addgc:()=>addRel('gc',pid),relgo:()=>relForm(d.kind,pid,d.anchor),detailback:()=>detail(pid),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{fitAll=1;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();sc=null;tx=null;ty=null;firstMap=1;render()},colall:()=>{P.forEach(p=>col.add(p.id));tx=null;ty=null;anchorFirst=1;render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
  restore:()=>$('#file').click(),shot:()=>askPhoto(d=>savePhoto(pid,d)),shotcam:()=>askCamera(d=>savePhoto(pid,d))})[a]()}
 const syncNav=()=>document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
 function ask(msg,yes){onYes=yes;show(`<h2>Are you sure?</h2><p>${h(msg)}</p><div class="bar"><span></span><button class="btn" data-act="close">Cancel</button><button class="btn d" data-act="yes">Yes</button></div>`)}
@@ -438,7 +507,7 @@ function n2a(id){const n=N.find(x=>x.id===id);if(!n)return;picker(new Set(),pid=
 function pickNode(id){if(!selA||!M.get(selA)){selA=id;render();return}
  if(selA===id){selA=null;render();return}
  selB=id;const a=M.get(selA),b=M.get(id);
- show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-rel="sb">They are siblings</button><button class="btn" data-rel="gp">${h(a.name)} is a grandparent of ${h(b.name)}</button><button class="btn" data-rel="gc">${h(a.name)} is a grandchild of ${h(b.name)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
+ show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-rel="sb">They are siblings</button><button class="btn" data-rel="au">${h(a.name)} is an aunt or uncle of ${h(b.name)}</button><button class="btn" data-rel="nn">${h(a.name)} is a niece or nephew of ${h(b.name)}</button><button class="btn" data-rel="co">They are cousins</button><button class="btn" data-rel="gp">${h(a.name)} is a grandparent of ${h(b.name)}</button><button class="btn" data-rel="gc">${h(a.name)} is a grandchild of ${h(b.name)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
 function applyLink(a,b,t){if(!a||!b)return 'Pick two different people';
  const bk=P.map(p=>[p,p.parents.slice(),p.partners.slice()]),len=P.length,was=famIssues();   // a link is only kept if it adds no impossibility
  const undo=()=>{bk.forEach(([p,pa,pt])=>{p.parents=pa;p.partners=pt});P.length=len};
@@ -447,17 +516,27 @@ function applyLink(a,b,t){if(!a||!b)return 'Pick two different people';
  const gpar=(g,c)=>{if(!parIds(c.id).length)return c.name+' needs a parent first';if(parIds(c.id).some(p=>M.get(p)?.parents.includes(g.id)))return 'Already linked';const free=parIds(c.id).find(p=>p!==g.id&&(M.get(p)?.parents.length||0)<2&&!desc(p).has(g.id));return free?(M.get(free).parents.push(g.id),''):'Can’t add – their parents are full'};
  if(t=='pa')err=par(b,a);else if(t=='ch')err=par(a,b);else if(t=='pt'){if(a.partners.includes(b.id))err='Already partners';else{a.partners.push(b.id);b.partners.push(a.id)}}
  else if(t=='sb')err=sibLink(a,b);
+ else if(t=='au'||t=='nn'||t=='co'){const cs=RANC[t](b.id).filter(x=>M.has(x));   // the relatives this link could hang off, the first one that takes it
+  if(!cs.length)err=RNONE[t](b);else{err='';for(const x of cs){const e=rAtt(a,M.get(x),RHOW[t]);if(!e){err='';break}err=e}}}
  else if(t=='gp')err=gpar(a,b);else if(t=='gc')err=gpar(b,a);   if(err){undo();return err}
  const bad=famIssues().filter(k=>!was.includes(k));
  if(bad.length){undo();return issueMsg(bad[0],a,b)}
  return ''}
 // from someone's card: pick a person you already added and say what they are to you
-const REL={par:'pa',kid:'ch',prt:'pt',sib:'sb',gp:'gp',gc:'gc'};
+const REL={par:'pa',kid:'ch',prt:'pt',sib:'sb',au:'au',nn:'nn',co:'co',gp:'gp',gc:'gc'};
+// Add a relative the family already implies. When there is more than one relative it could hang off,
+// ask which one; when there is none, say what has to exist first.
+function addRel(k,id){const p=M.get(id);if(!p)return;
+ const cs=RANC[k](id).filter(i=>M.has(i));
+ if(!cs.length)return say(RNONE[k](p));
+ if(cs.length==1)return relForm(k,id,cs[0]);
+ show(`<h2>${RASK[k]}</h2><p class="m">${h(p.name)}</p><div class="menu">`+cs.map(i=>`<button class="btn" data-act="relgo" data-kind="${k}" data-pid="${id}" data-anchor="${i}">${h(M.get(i).name)} <small>${life(M.get(i))}</small></button>`).join('')+`<button class="btn" data-act="detailback" data-pid="${id}">Cancel</button></div>`)}
+const relForm=(k,id,anchor)=>M.get(anchor)?form(null,{rel:{id:anchor,t:RTIE[RHOW[k]]}}):null;
 function linkPick(rel,id){const t=REL[rel],p=M.get(id);if(!p||!t)return;
  // only offer people who could really hold that place: not yourself, not your partner or someone
  // already in it, and never straight up or down your own line
- const already=rel=='par'?parIds(id):rel=='kid'?kidIds(id):rel=='gp'?gpIds(id):rel=='gc'?gcIds(id):rel=='sib'?sibIds(id):p.partners;
- const ex=new Set([id,...p.partners,...ancIds(id),...already,...(rel=='gc'?kidIds(id):desc(id))]);
+ const already=rel=='par'?parIds(id):rel=='kid'?kidIds(id):rel=='gp'?gpIds(id):rel=='gc'?gcIds(id):rel=='sib'?sibIds(id):rel=='au'?uncIds(id):rel=='nn'?nieIds(id):rel=='co'?couIds(id):p.partners;
+ const ex=new Set([id,...p.partners,...ancIds(id),...already,...(rel=='gc'?kidIds(id):desc(id)),...(rel=='au'||rel=='nn'||rel=='co'?sibIds(id):[])]);   // a brother or sister can never be an aunt, a niece or a cousin
  picker(ex,oid=>{const err=applyLink(M.get(oid),M.get(id),t);
   if(err){say(err);return}commit();detail(id);say('Linked '+M.get(oid).name)})}
 function link(t){const a=M.get(selA),b=M.get(selB);if(!a||!b)return;const err=applyLink(a,b,t);
@@ -476,7 +555,7 @@ $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)
  n.forEach(x=>{x.parents=x.parents.filter(i=>ids.has(i)).slice(0,2);x.partners=x.partners.filter(i=>ids.has(i))});
  ask(`Replace everything with ${n.length} people from this backup?`,()=>{P=n;N=nn;commit();say('Restored '+n.length+' people')})}catch(err){say('Not a valid backup file')}};
 const fixed=repair();
-index();render();
+index();render();if(bdOn())bdPush();
 if(fixed)say('Undid '+fixed+' link'+(fixed==1?'':'s')+' that looped the family back on itself');
 if('serviceWorker'in navigator&&!window.Android&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
