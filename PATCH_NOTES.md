@@ -9,6 +9,167 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-12 — The parents a family already states are linked by themselves
+
+A page change: it arrives over the air, nothing to install.
+
+### Changed
+- **You no longer link every parent by hand.** Two rules, both of them things the page already did
+  elsewhere, are now applied to the whole tree — when it opens and before every save:
+  - **The other half of a couple.** A child of one half of a couple is a child of the other half. That is
+    what *+ Child* from someone's own page already wrote down; picking a child who is already in the tree,
+    or linking a brother or sister to somebody who has a parent, used to record **one** parent only — so
+    the mother had to be linked by hand on every child, and the father on every one of hers.
+  - **A brother or sister with nobody recorded** takes the parents their brother or sister has, the
+    mother and father alike, and through a chain (a brother of my brother is my brother too) — which is
+    what the sibling link already meant when the parent was filled in first.
+- **It only ever fills in, and only where the family is sure.** A parent is added only where there is
+  room for one (two parents, no self, no duplicate, no loop back on the family), where nothing else is
+  contradicted, and where the family can still be drawn. **Nobody is invented, nothing is ever taken
+  away**, and every link already stored is left exactly as it is.
+- **Where the family speaks with two voices it is left alone.** A person with two partners (a second
+  marriage) is not guessed at — which of them a child belongs to is not something the page can tell. A
+  brother or sister who has a parent the others do not have is left as they are: that is a second family,
+  and not something to guess at either.
+- **Menu (⋮) → Stop linking parents automatically** turns the whole thing off; **Link parents
+  automatically** turns it back on, filling the family in there and then. With it off the page links only
+  what you link by hand, and a parent you take off by hand **stays off**.
+
+### Added
+- **The page says what it linked by itself** — *Linked N parents automatically* — when it opens on a tree
+  that was entered by hand, and the result is saved, so it happens once and not on every launch.
+
+### Unchanged
+- **The stored format is exactly the same**: a filled-in parent is an ordinary parent link, so a backup
+  made here restores into any earlier version and an older backup restores into this one. The page writes
+  to storage only when there was something to fill in.
+- **What it cannot know**: a step-parent cannot be told from a parent, so the other half of a couple is
+  taken as a parent like any other. That is what the switch in the menu is for, and any single parent can
+  still be taken off on the person's own page → **Edit**.
+
+Verified on the delivered bytes (`index.html` = `app/src/main/assets/index.html`, both `1f622d52`):
+- **37 model checks** on the real page script: the couple rule and the sibling rule (including the shape
+  from the screenshot — a father with two married sons, and their children), the pages, the people list
+  and the tree reading it, the switch on and off, a save doing it, a hand-made link being filled in,
+  idempotence, the grandparent never written in as a parent, **nobody invented and no link ever lost**,
+  and the refusals (a man with two wives, a brother or sister with a parent of their own, an empty
+  family). **Control, the same script with only this fill-in reverted: 16 of the 37 fail and the other 21
+  pass** — so the checks measure this change and nothing else.
+- **26 browser checks** driving the real page (headless Chrome, 390×844, the real buttons): the tree on the
+  phone comes up with the parents linked and says so; the child's own page and the people list read both
+  parents; everyone is drawn exactly once with nothing on top of anybody, and the line into a child of a
+  couple leaves the couple rather than one half of it; the menu switch off and on again, with the message
+  each time; a parent taken off by hand with the switch off stays off, and turning the switch back on
+  links only what was missing. 0 failed. **Control, the same page with only this fill-in reverted: 10 of
+  the 26 fail, 16 pass** — and the page on the phone today fails those same checks (the menu entry does
+  not exist there at all).
+- **The launch path itself**: 7 model checks on a tree that was linked by hand, opened for the first time
+  — the parents are filled in, saved, and the message says how many; **2 more** with the switch off (the
+  family is left exactly as it was, nothing is said) and **2 on the second launch** (nothing is left to
+  link, so nothing is said). **Control: 4 of the 7 fail without the change.**
+- **Measured** on a 144-person tree built the way the phone's was (couples whose children were linked to
+  one parent each): **60 parents filled in 67 ms**, a whole save 24 ms, and the second pass 0 ms and
+  nothing written — so the tree on the phone fills itself in on one launch and costs nothing after that.
+- **The 105 existing model suites**: byte for byte identical results and exit codes to the run on the
+  page on the phone.
+- **The 41 existing browser suites**: identical results and exit codes, apart from the added checks
+  above (`auto_ui.js`) — including the drawing measurements (`wife_ui.js` 176.4/208.5px, `wife_ui2.js`
+  9.4/41.5px), which are unchanged to the decimal.
+- Two suites from the previous round carried one assertion each that described the old *one parent only*
+  behaviour (`sibnone.js` 52 checks, `sib_ui.js` 41 checks); they now assert that **both** parents are
+  shared, rather than being deleted or loosened, and those rewritten checks **fail on the page on the
+  phone** (one each) and pass here. Both suites are otherwise green: 64 and 41 checks, 0 failed.
+
+## 2026-10-12 — A brother or sister without a parent is no longer a stranger called "Unknown"
+
+A page change: it arrives over the air, nothing to install.
+
+### Changed
+- **Brothers and sisters with no parent recorded are drawn beside each other.** Two people linked this
+  way used to be laid out as two separate families, one on the page below the other — *the sibling goes
+  further down with their family*. They are now one block: the two sit **on the same row, side by side**,
+  each with **their own family under them**, and their own children on their own side rather than under
+  the other family. It is the same picture the app already draws for brothers and sisters who *do* have
+  a parent, which the notes below measured at a 410px gap between the two couples.
+  - When only one of them has a parent written down, that parent stays above their own child and the two
+    are still drawn on one row — nobody is left a row below their brother or sister.
+  - Families with no such link are laid out exactly as before: the block only merges boxes that really
+    hold brothers or sisters.
+
+### Fixed
+- **Linking two people as brother and sister when neither of them has a parent recorded invented a
+  person called "Unknown"** and made it the parent of both. That stranger then sat in the tree as a box
+  of its own, and — worse — a husband and wife could be linked as brother and sister this way, which
+  quietly gave the couple an invented parent too. Nobody is invented any more.
+- **The two are now written down as each other's brother or sister**, which is all the family really
+  knows. They appear under **Siblings** on both their pages, and everyone the family reads off a brother
+  or sister still works from that link (a child of theirs is a niece or nephew, their parent's other
+  children are cousins, and so on).
+  - A brother of my brother is my brother too: three people joined two at a time are all brothers and
+    sisters of one another, exactly as they would be if a parent of theirs had been filled in. Only the
+    pairs that were new are stored.
+  - **A husband and wife can no longer be linked as brother and sister** — it is refused (*Already
+    partners*) and nothing is written, in the picker and on the tree's **Connect people** alike.
+- **The ways that already worked are untouched.** If one of the two has a parent recorded, that parent
+  is still shared with the other (the long-standing "a sibling a married-in person can take" behaviour),
+  and two people who already share a real parent are left exactly as they are — nothing extra is stored
+  for them.
+
+### Added
+- **Remove N Unknown parents** in the menu (⋮), which appears only when the tree actually holds one of
+  these invented parents — someone called **Unknown** with no dates, no photo, no note, no parents, no
+  partner and two or more children. It asks first, then takes the invented parent away and leaves the
+  people who were under it where they are: **brothers and sisters stay linked to each other**, and a
+  married couple under one is left a couple rather than being made into brother and sister. Nobody real
+  is ever deleted, and an **Unknown** with a real date (or any links of their own) is left alone.
+
+### Unchanged
+- **The stored format only grew a field, and only for a pair with no parent** (`sibs`, written on both
+  people). A person with no such link is stored byte for byte as before, so a backup from any earlier
+  version restores into this one and this one's backups restore into it. A backup made *here* and
+  restored into an older app keeps everybody and every parent link; the two-sibling links that stand in
+  for a missing parent are simply not shown by that older page.
+
+Verified on the delivered bytes (`index.html` = `app/src/main/assets/index.html`, both `c0ac4009`):
+- **64 model checks** on the real page script: no person is invented; the pair is written on both, in
+  storage; the tree draws everyone exactly once with no boxes on top of each other; both pages list each
+  other under Siblings; a niece, an aunt and a cousin all read off the link; the third person in a chain
+  is a brother or sister of both; one side of a saved pair (or a dead name, themselves, an ancestor or a
+  husband) is put right on launch; a husband and wife, and a parent and child, are refused with nothing
+  written; a real parent is still taken; **deleting** one of a pair takes the link with it; the menu
+  entry, its confirmation and its message; and that no amount of sibling linking ever invents anybody.
+  **Control, the page on the phone: 20 of these fail.**
+- **12 more model checks** on the drawing: two brothers and sisters who each have a family are on **one
+  row, side by side, with nothing but their own two boxes on that row**, each family's children on their
+  own side, an unrelated family still in its own block below, nobody on top of anybody, and everybody
+  drawn once. With only one of them having a parent, they still share a row with that parent above their
+  own child. Without the link the same family is drawn as two blocks (which is all the family knows), so
+  the link is what puts them together.
+- **41 browser checks** driving the real page (headless Chrome, 390×844, the real buttons): the
+  reported flow — *+ Brother / Sister* from a person's own page — adds one person, invents nobody, writes
+  the pair, and shows them as siblings on both pages; the picker path and the chain (a brother of my
+  brother); the married couple refused from the picker and from the tree's **Connect people**; the
+  existing "take the parent they have" path; the menu cleanup of two invented parents with the couple
+  under one left a couple and the brothers and sisters under the other still linked. 0 failed.
+  **Control, the page on the phone: 9 fail** (an *Unknown* box appears, both get a parent, the couple is
+  accepted, and there is nothing in the menu to clean up).
+- **7 browser measurements of the drawing itself**, taken from the rendered boxes after linking two
+  people who each have a family through the real page: one row, side by side (measured 158px apart for
+  202px-wide boxes, versus one family 328px below the other before), each family's children on their own
+  side, the unrelated family below, and nothing overlapping. **Control, the same page with only the
+  layout change reverted: those 4 checks fail and the other 37 pass.**
+- **12 measurements at 390px and 320px**: every menu entry fits inside the dialog, none lands on
+  another, the new entry is exactly as wide as the ones beside it and its words are never cut off (at
+  320px it wraps to two lines, as any long entry does), and the confirmation and its buttons fit.
+- **The 105 existing model suites**: the same result and exit code as the page on the phone, apart from
+  `badlink.js` 28→29 checks (two of its assertions were about the invented parent and are now about the
+  new link) and `fuzz.js`, where the reported violations **drop from 1580 to 1412**: the 168 that went
+  away are exactly the `dangling parent` reports of the invented people, and its 5690 cycle reports are
+  unchanged. `upcheck.js`, a debug script that used to crash on this shape, now runs to the end.
+- **The 41 existing browser suites**: the same results as before, apart from `rel_ui.js` 36→37 (its
+  "a shared parent" check is now the two checks above), `nick_paths.js` (needs its page argument; 5/5
+  with it), a hanging debug script, and one measurement script that no longer crashes.
+
 ## 2026-10-12 — A birthday reminder for everyone who is alive
 
 Half a page change and half a native one: the page arrives over the air, but a notification is the

@@ -41,7 +41,9 @@ const $=s=>document.querySelector(s),KEY='familytree.v1',uid=()=>Date.now().toSt
 const h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let P=[],M=new Map,C=new Map,tab='people',qs='',selA=null,selB=null,conn=false,onYes=null,N=[],sc=null,tx=null,ty=null,col=new Set(),gW=0,gH=0,firstMap=1,tv='map',fitAll=0,anchorId=null,anchorFirst=0;
 const str=x=>String(x??''),arr=x=>Array.isArray(x)?x:[];
-const normPerson=x=>{const o=x&&typeof x=='object'?x:{};return{id:str(o.id)||uid(),name:str(o.name)||str(o.nick),nick:str(o.name)?str(o.nick):'',birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str)}};
+// A person carries the two links a family is made of — a parent and a partner — plus, when it is known,
+// the brothers and sisters nobody can point at a parent for yet (see sibPair below).
+const normPerson=x=>{const o=x&&typeof x=='object'?x:{},sibs=[...new Set(arr(o.sibs).map(str).filter(Boolean))];return{id:str(o.id)||uid(),name:str(o.name)||str(o.nick),nick:str(o.name)?str(o.nick):'',birth:str(o.birth),death:str(o.death),note:str(o.note),photo:str(o.photo),parents:arr(o.parents).map(str),partners:arr(o.partners).map(str),...(sibs.length?{sibs}:{})}};
 function loadData(){let pl=[],nt=[];try{const d=JSON.parse(localStorage.getItem(KEY)||'null');pl=Array.isArray(d)?d:arr(d&&d.people);nt=arr(d&&d.notes)}catch(e){}try{const n=JSON.parse(localStorage.getItem(KEY+'.notes')||'null');if(Array.isArray(n))nt=n}catch(e){}return{people:pl.filter(x=>x&&x.id).map(normPerson),notes:nt.filter(x=>x&&x.t).map(x=>({id:str(x.id)||uid(),t:str(x.t)}))}}
 {const d=loadData();P=d.people;N=d.notes}
 // Month names, so a date can be written the way people write it. One list feeds the reader, the
@@ -131,7 +133,7 @@ const savePhoto=(id,d)=>{const q=M.get(id);if(!q)return;q.photo=d;commit();detai
 // the app hands back a picture it has just taken, as an address this page is allowed to read
 window.__photo=u=>fetch(u).then(r=>r.blob()).then(picIn).catch(picBad);
 function index(){M=new Map(P.map(p=>[p.id,p]));C=new Map;for(const p of P)for(const i of p.parents){if(!C.has(i))C.set(i,[]);C.get(i).push(p)}for(const a of C.values())a.sort(cmp)}
-function commit(){try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}index();render();bdPush()}
+function commit(){index();sibFix();parFix();try{localStorage.setItem(KEY,JSON.stringify(P));localStorage.setItem(KEY+'.notes',JSON.stringify(N))}catch(e){say(e&&e.name=='QuotaExceededError'?'Storage full – remove some photos or back up first':'Could not save – storage blocked')}render();bdPush()}
 const desc=id=>{const s=new Set,st=[id];while(st.length)for(const c of C.get(st.pop())||[])if(!s.has(c.id)){s.add(c.id);st.push(c.id)}return s};
 const ancIds=id=>{const s=new Set,st=[...parIds(id)];while(st.length){const c=st.pop();if(s.has(c))continue;s.add(c);(M.get(c)&&M.get(c).parents||[]).forEach(q=>st.push(q))}return s};
 // Why a family can't be drawn: someone is their own ancestor, a partner is also a parent/child,
@@ -159,6 +161,41 @@ const ISSUE={self:'That would link someone to themselves',dup:'Those two are alr
  loop:'are already in the same line, so that would loop the family back on itself',
  mixed:'are already related through each other’s line, so that would loop the family back on itself',
  knot:'are already joined by a marriage, so that would tie the two sides in a loop'};
+// A brother or sister with no parent is written on both people. A backup can carry only one side of a
+// pair, or somebody who is no longer in the tree, so the pairs are made to agree with each other and a
+// link that contradicts the family (a brother or sister who is really an ancestor) is dropped. This runs
+// on launch and before every save, so what is stored is always the pair written on both people.
+function sibFix(){let n=0;
+ P.forEach(p=>{if(!p.sibs||!p.sibs.length)return;
+  const keep=[...new Set(p.sibs)].filter(id=>id!==p.id&&M.has(id)&&!p.partners.includes(id)&&!ancIds(id).has(p.id)&&!ancIds(p.id).has(id));
+  if(keep.length!==p.sibs.length)n++;
+  if(keep.length)p.sibs=keep;else delete p.sibs});
+ P.forEach(p=>(p.sibs||[]).forEach(q=>{const o=M.get(q);if(o&&!(o.sibs||[]).includes(p.id))(o.sibs=o.sibs||[]).push(p.id)}));
+ return n}
+// The parents a family already states, written down instead of linked by hand. Two rules, both of them
+// things this page already does elsewhere: a child of one half of a couple is a child of the other half
+// (that is what adding a child from someone's own page writes down), and a brother or sister with no
+// parent recorded at all has the same parents as their brother or sister (that is what linking brothers
+// and sisters writes down). A parent is only ever ADDED, never taken away, and only where there is room
+// for it, where nothing is contradicted and where the family can still be drawn; brothers and sisters who
+// do not agree on their parents are left exactly as they are, because that is a second family or a
+// marriage and not something to guess at. The switch in the menu turns the whole thing off.
+const autoOn=()=>{try{return localStorage.getItem(KEY+'.autopar')!='0'}catch(e){return true}};
+const autoSet=on=>{try{localStorage.setItem(KEY+'.autopar',on?'1':'0')}catch(e){}};
+function parFix(){if(!autoOn())return 0;let n=0;
+ const add=(c,pid)=>{if(!M.has(pid)||c.id===pid||c.parents.length>=2||c.parents.includes(pid)||desc(c.id).has(pid)||ancIds(c.id).has(pid))return 0;
+  const was=famIssues();c.parents.push(pid);index();
+  if(famIssues().some(k=>!was.includes(k))){c.parents.pop();index();return 0}
+  n++;return 1};
+ for(let it=0,go=1;go&&it<P.length+2;it++){go=0;
+  P.forEach(p=>{
+   // one half of a couple is a parent of the other half's child — but a person with two partners is a
+   // second marriage, and which of them a child belongs to is not something the family can tell us
+   p.parents.slice().forEach(fid=>{const f=M.get(fid);if(f&&f.partners.length==1&&add(p,f.partners[0]))go=1});
+   if(p.parents.length)return;          // they know their own parents; this is for the ones who do not
+   const cand=new Set();sibIds(p.id).forEach(sid=>{const s=M.get(sid);if(s)s.parents.forEach(x=>cand.add(x))});
+   if(cand.size&&cand.size<=2)cand.forEach(x=>{if(add(p,x))go=1})});}
+ return n}
 // A link saved before this check existed can leave the family impossible to draw. Undo just
 // those links on launch, newest first, and say so rather than silently leaving a broken tree.
 function repair(){let fixed=0;const drop=[];
@@ -168,6 +205,7 @@ function repair(){let fixed=0;const drop=[];
   for(let i=P.length-1;i>=0&&!done;i--)for(let j=P[i].parents.length-1;j>=0&&!done;j--){
    const p=P[i],q=p.parents.splice(j,1)[0];index();
    if(famIssues().some(k=>k.startsWith('knot:'))){p.parents.splice(j,0,q);index()}else{fixed++;done=1}}}
+ sibFix();   // a brother or sister written on one side only is made to agree with the other side
  if(fixed){try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}}return fixed}
 const issueMsg=(k,a,b)=>{const[t,id]=k.split(':');
  return t=='many'?(M.get(id)?.name||'They')+' already has two parents':
@@ -175,13 +213,34 @@ const issueMsg=(k,a,b)=>{const[t,id]=k.split(':');
   ((a&&a.name)||'They')+' and '+((b&&b.name)||'they')+' '+ISSUE[t]+' – nothing was changed'};
 const uniq=a=>[...new Set(a)],parIds=id=>(M.get(id)?.parents||[]),kidIds=id=>(C.get(id)||[]).map(x=>x.id);
 const byBirthId=(a,b)=>{const A=M.get(a),B=M.get(b);return A&&B?cmp(A,B):0};
-const sibIds=id=>uniq(parIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id).sort(byBirthId);
+// Brothers and sisters are the children of one parent — and, where nobody has written a parent down, the
+// pair itself (sibs). A brother of my brother is my brother too, so those pairs are followed right
+// through: three people joined two at a time are all brothers and sisters of one another, exactly as
+// they would be if a parent of theirs had been filled in. Nothing else in the page has to know that a
+// parent is missing.
+const sibIds=id=>{const out=new Set(parIds(id).flatMap(i=>kidIds(i))),seen=new Set([id,...out]),st=[id,...out];
+ while(st.length){const c=st.pop();(M.get(c)?.sibs||[]).forEach(q=>{if(seen.has(q))return;seen.add(q);out.add(q);st.push(q)})}
+ out.delete(id);return [...out].sort(byBirthId)};
 const gpIds=id=>uniq(parIds(id).flatMap(i=>parIds(i)));
 const gcIds=id=>uniq(kidIds(id).flatMap(i=>kidIds(i)));
 const uncIds=id=>uniq(parIds(id).flatMap(i=>sibIds(i))).filter(x=>x!==id&&!parIds(id).includes(x));
 const nieIds=id=>uniq(sibIds(id).flatMap(i=>kidIds(i)));
 const couIds=id=>uniq(uncIds(id).flatMap(i=>kidIds(i))).filter(x=>x!==id&&!nieIds(id).includes(x)&&!sibIds(id).includes(x));
-const sibLink=(a,b)=>{if(a.parents.some(p=>b.parents.includes(p)))return '';const tryAdd=(s,d)=>{const p=s.parents.find(x=>d.parents.length<2&&!d.parents.includes(x)&&!desc(d.id).has(x)&&x!==d.id);return p?(d.parents.push(p),true):false};if(a.parents.length&&tryAdd(a,b))return '';if(b.parents.length&&tryAdd(b,a))return '';if(a.parents.length<2&&b.parents.length<2){const nid=uid(),u={id:nid,name:'Unknown',nick:'',birth:'',death:'',note:'',parents:[],partners:[]};P.push(u);a.parents.push(nid);b.parents.push(nid);return ''}return 'No room to add a shared parent'};
+// A brother or sister is somebody you share a parent with. Written on BOTH people, so either of them
+// knows about it, and never on somebody who already shares a real parent with them.
+const sibPair=(a,b)=>{if(a.parents.some(p=>b.parents.includes(p))||a.partners.includes(b.id)||b.partners.includes(a.id))return;const sa=a.sibs=a.sibs||[],sb=b.sibs=b.sibs||[];if(!sa.includes(b.id))sa.push(b.id);if(!sb.includes(a.id))sb.push(a.id)};
+// Linking two people as brother and sister. The parent one of them already has is shared with the other
+// when it can be. When neither of them has a parent written down there is nobody to share and NOBODY IS
+// INVENTED — that is what used to put a stranger called "Unknown" into the tree — the two are simply
+// written down as each other's brother or sister.
+const sibLink=(a,b)=>{if(a.id===b.id)return 'Same person';
+ if(a.parents.some(p=>b.parents.includes(p))||sibIds(a.id).includes(b.id))return '';
+ if(a.partners.includes(b.id)||b.partners.includes(a.id))return 'Already partners';
+ const tryAdd=(s,d)=>{const p=s.parents.find(x=>d.parents.length<2&&!d.parents.includes(x)&&!desc(d.id).has(x)&&x!==d.id);return p?(d.parents.push(p),true):false};
+ if(a.parents.length&&tryAdd(a,b))return '';
+ if(b.parents.length&&tryAdd(b,a))return '';
+ if(!a.parents.length&&!b.parents.length){sibPair(a,b);return ''}
+ return 'No room to add a shared parent'};
 // The relatives the family already implies. Which one a new relation hangs off, and how the new person
 // is built onto them: an aunt or uncle is a brother or sister of a parent, a niece or nephew is a child
 // of a brother or sister, a cousin is a child of an aunt or uncle, a grandparent is a parent of a parent
@@ -221,7 +280,8 @@ function build(){
  P.forEach(p=>{const rp=find(p.id);p.parents.forEach(q=>{if(!M.has(q))return;const rq=find(q);if(rq!==rp){U.get(rq).ck.add(rp);U.get(rp).cp.add(rq)}})});
  const nodes=[];
  U.forEach((u,r)=>{const mem=u.mem.map(i=>M.get(i)).sort(cmp);nodes.push({r,mem,p:mem[0],ps:mem.slice(1),pr:[...u.cp],ck:[...u.ck],kids:[],x:null,d:0})});
- const N=new Map(nodes.map(n=>[n.r,n]));
+ const N=new Map(nodes.map(n=>[n.r,n])),boxOf=new Map();
+ nodes.forEach(n=>n.mem.forEach(p=>boxOf.set(p.id,n)));       // which box a person is drawn in
  nodes.forEach(n=>n.kids=n.ck.map(r=>N.get(r)).filter(Boolean));
  const dep=(n,path)=>{if(n.fx)return n.d;if(path.has(n.r))return 0;path.add(n.r);let d=0;n.pr.forEach(r=>{const q=N.get(r);if(q)d=Math.max(d,dep(q,path)+1)});path.delete(n.r);n.d=d;n.fx=1;return d};
  nodes.forEach(n=>dep(n,new Set()));
@@ -233,7 +293,11 @@ function build(){
  for(let go=1,it=0;go&&it<nodes.length+2;it++){
   go=0;
   nodes.slice().sort((a,b)=>b.d-a.d).forEach(n=>{if(!n.kids.length)return;const w=Math.min(...n.kids.map(k=>k.d))-1;if(w>n.d){n.d=w;go=1}});
-  nodes.slice().sort((a,b)=>a.d-b.d).forEach(n=>{if(!n.kids.length)return;const D=Math.max(n.d+1,...n.kids.map(k=>k.d));n.kids.forEach(k=>{if(k.d<D){k.d=D;go=1}})})}
+  nodes.slice().sort((a,b)=>a.d-b.d).forEach(n=>{if(!n.kids.length)return;const D=Math.max(n.d+1,...n.kids.map(k=>k.d));n.kids.forEach(k=>{if(k.d<D){k.d=D;go=1}})});
+  // And brothers and sisters who have no parent recorded are kept on ONE row too, so one of them is
+  // never drawn a row below the other with their family beside them instead of beside them.
+  nodes.forEach(n=>n.mem.forEach(p=>(p.sibs||[]).forEach(s=>{const u=boxOf.get(s);if(!u||u===n)return;
+   const D=Math.max(n.d,u.d);if(n.d<D){n.d=D;go=1}if(u.d<D){u.d=D;go=1}})))}
  return nodes}
 const lab=(p,ps)=>`<span class="n${p.id===selA?' sel':''}" data-id="${p.id}">${h(p.name)}</span> <small>${life(p)}</small>`+ps.map(x=>` <small>⚭</small> <span class="n${x.id===selA?' sel':''}" data-id="${x.id}">${h(x.name)}</span>`).join('');
 const html=(n,d)=>n.kids.length?`<details${d<2?' open':''}><summary>${lab(n.p,n.ps)}</summary>${n.kids.map(k=>html(k,d+1)).join('')}</details>`:`<div class="leaf">${lab(n.p,n.ps)}</div>`;
@@ -266,9 +330,15 @@ function tlayout(list){
   const lines=x=>{const CPL=Math.max(6,Math.floor((n.cw-(x.photo?AVW:0))/6.8));
    return 1+(x.name.length+(x.nick?x.nick.length+3:0)>CPL?1:0)};
   n.h=Math.max(TH,16+ROW*shown.reduce((s,x)=>Math.max(s,lines(x)),1))});
- const N=new Map(list.map(n=>[n.r,n])),seen=new Set(),comps=[];
+ const N=new Map(list.map(n=>[n.r,n])),seen=new Set(),comps=[],whoIn=new Map();
+ list.forEach(n=>n.mem.forEach(p=>whoIn.set(p.id,n)));        // which box holds a person
  list.forEach(n=>{if(seen.has(n.r))return;const st=[n.r],c=[];seen.add(n.r);
-  while(st.length){const r=st.pop(),q=N.get(r);c.push(q);q.ck.concat(q.pr).forEach(k=>{if(N.has(k)&&!seen.has(k)){seen.add(k);st.push(k)}})}comps.push(c)});
+  while(st.length){const r=st.pop(),q=N.get(r);c.push(q);
+   // a box is drawn in one block with the boxes holding its parents, its children — and the brothers
+   // and sisters it has no parent to point at, so two of them are set side by side with their own
+   // families under them instead of one being carried down the page as a block of its own.
+   const near=q.ck.concat(q.pr);q.mem.forEach(p=>(p.sibs||[]).forEach(s=>{const o=whoIn.get(s);if(o)near.push(o.r)}));
+   near.forEach(k=>{if(N.has(k)&&!seen.has(k)){seen.add(k);st.push(k)}})}comps.push(c)});
  const outN=[],edges=[],pos=new Map();let W=0,top=0;
  comps.forEach(c=>{
   const ord=new Map();let t=0;
@@ -422,7 +492,7 @@ function form(id,pre={}){const e=id&&M.get(id),p=e||{name:'',birth:'',death:'',n
  $('#fp').onclick=()=>$('#ff').click();$('#fr').onclick=()=>{ph='';pv()};
  const ft=$('#ft');if(ft)ft.onclick=()=>askCamera(d=>{ph=d;pv()});        // the phone's camera, when it can be opened
  $('#ff').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(f)shrink(f,d=>{ph=d;pv()},()=>say('That picture couldn’t be opened – if it is a HEIC photo, pick it from Files as a JPEG instead'))};
- if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id)});commit()})};
+ if(e)$('#fx').onclick=()=>{ask('Delete '+p.name+'? Links to them are removed.',()=>{P=P.filter(x=>x.id!==id);P.forEach(x=>{x.parents=x.parents.filter(i=>i!==id);x.partners=x.partners.filter(i=>i!==id);if(x.sibs)x.sibs=x.sibs.filter(i=>i!==id)});commit()})};
  const doSave=again=>{let name=$('#fn').value.trim(),nick=$('#fk').value.trim();if(!name&&nick){name=nick;nick=''}const b=normDate($('#fb').value),d=normDate($('#fd').value);
   const bad=!name?'Add a name or a nickname.':b===null||d===null?'Dates look like 7/4, 4 Jul 1950 or 1950 – the year can be left out.':b&&d&&d.slice(0,4)<b.slice(0,4)?'Death can’t be before birth.':'';
   if(bad){$('#er').textContent=bad;return}
@@ -484,8 +554,20 @@ function panzoom(vp,ti){const pts=new Map();let base=null,moved=false;
   sc=Math.max(.12,Math.min(3,sc*(e.deltaY<0?1.12:.89)));tx=(e.clientX-r.left)-ox*sc;ty=(e.clientY-r.top)-oy*sc;
   clampView(vp);applyView(ti);e.preventDefault()},{passive:false})}
 const refresh=()=>{const A=window.Android;if(A&&A.refresh)A.refresh();else{say('Checking for the latest version…');setTimeout(()=>location.reload(),600)}};
-function menu(){show(`<h2>Menu</h2><div class="menu"><button class="btn" data-act="bdays">Birthdays</button><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn" data-act="close">Close</button></div>`)}
-function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()},close:()=>D.close(),bdays:()=>bdaysView(),
+// A parent the app itself used to invent for two people who had none. It is nobody and it holds nothing
+// together any more, so it can be taken away again — the people who were under it stay brothers and
+// sisters to each other.
+const invented=()=>P.filter(p=>p.name=='Unknown'&&!p.birth&&!p.death&&!p.photo&&!p.note&&!p.parents.length&&!p.partners.length&&kidIds(p.id).length>1);
+function cleanPh(){const ph=invented(),kids=ph.map(u=>kidIds(u.id).map(i=>M.get(i)).filter(Boolean));
+ if(!ph.length)return say('Nothing to tidy up');
+ ph.forEach((u,i)=>{kids[i].forEach(k=>k.parents=k.parents.filter(x=>x!==u.id));
+  for(let j=0;j<kids[i].length;j++)for(let m=j+1;m<kids[i].length;m++)sibPair(kids[i][j],kids[i][m]);
+  P=P.filter(x=>x.id!==u.id);index()});
+ commit();say('Removed '+ph.length+' Unknown parent'+(ph.length==1?'':'s')+' – the brothers and sisters are still linked')}
+function menu(){const n=invented().length;show(`<h2>Menu</h2><div class="menu">${n?`<button class="btn" data-act="cleanph">Remove ${n} Unknown parent${n==1?'':'s'}</button>`:''}<button class="btn" data-act="autopar">${autoOn()?'Stop linking parents automatically':'Link parents automatically'}</button><button class="btn" data-act="bdays">Birthdays</button><button class="btn p" data-act="pdf">Export PDF</button><button class="btn" data-act="json">Backup (JSON)</button><button class="btn" data-act="restore">Restore from backup</button><button class="btn" data-act="close">Close</button></div>`)}
+function act(a,d){const D=$('#dlg'),pid=d.pid,p=pid&&M.get(pid);({add:()=>form(),conn:toggleConn,yes:doYes,addn:addN,allp:allP,n2p:()=>n2p(d.nid),n2a:()=>n2a(d.nid),ndel:()=>{N=N.filter(n=>n.id!==d.nid);commit()}, close:()=>D.close(),bdays:()=>bdaysView(),cleanph:()=>{const n=invented().length;ask('Remove '+n+' Unknown parent'+(n==1?'':'s')+'? The people who were under '+(n==1?'it':'them')+' stay in the tree, and brothers and sisters stay linked.',cleanPh)},
+ autopar:()=>{const on=!autoOn();autoSet(on);const n=on?parFix():0;if(n)commit();menu();
+ say(on?(n?'On – linked '+n+' parent'+(n==1?'':'s')+' automatically':'On – the family links its own parents'):'Off – parents are linked only by hand')},
  bdtog:()=>{const on=!bdOn();bdSet(on);bdPush();bdaysView();say(on?'On – you’ll get a notification on each birthday':'Birthday reminders off')},edit:()=>form(pid),addpar:()=>form(null,{child:pid}),addprt:()=>form(null,{f:{partners:[pid]}}),
  addkid:()=>form(null,{f:{parents:[pid,...(p.partners.length==1?p.partners:[])]}}),addsib:()=>form(null,{sib:pid,f:{parents:[...(p.parents||[])]}}),
  addau:()=>addRel('au',pid),addnn:()=>addRel('nn',pid),addco:()=>addRel('co',pid),addgp:()=>addRel('gp',pid),addgc:()=>addRel('gc',pid),relgo:()=>relForm(d.kind,pid,d.anchor),detailback:()=>detail(pid),zin:()=>zoomBy(1.25),zout:()=>zoomBy(.8),fit:()=>{fitAll=1;tx=null;ty=null;render()},vlist:()=>{tv='list';render()},vmap:()=>{tv='map';render()},expall:()=>{col.clear();sc=null;tx=null;ty=null;firstMap=1;render()},colall:()=>{P.forEach(p=>col.add(p.id));tx=null;ty=null;anchorFirst=1;render()},pdf:()=>{D.close();pdf()},json:()=>{D.close();dl(new Blob([JSON.stringify({v:3,app:'family-tree',people:P,notes:N})],{type:'application/json'}),'family-tree-backup.json')},
@@ -509,8 +591,8 @@ function pickNode(id){if(!selA||!M.get(selA)){selA=id;render();return}
  selB=id;const a=M.get(selA),b=M.get(id);
  show(`<h2>How are they related?</h2><p class="m">${h(a.name)} and ${h(b.name)}</p><div class="menu"><button class="btn" data-rel="pa">${h(a.name)} is a parent of ${h(b.name)}</button><button class="btn" data-rel="ch">${h(a.name)} is a child of ${h(b.name)}</button><button class="btn" data-rel="pt">They are partners</button><button class="btn" data-rel="sb">They are siblings</button><button class="btn" data-rel="au">${h(a.name)} is an aunt or uncle of ${h(b.name)}</button><button class="btn" data-rel="nn">${h(a.name)} is a niece or nephew of ${h(b.name)}</button><button class="btn" data-rel="co">They are cousins</button><button class="btn" data-rel="gp">${h(a.name)} is a grandparent of ${h(b.name)}</button><button class="btn" data-rel="gc">${h(a.name)} is a grandchild of ${h(b.name)}</button><button class="btn" data-act="close">Cancel</button></div>`)}
 function applyLink(a,b,t){if(!a||!b)return 'Pick two different people';
- const bk=P.map(p=>[p,p.parents.slice(),p.partners.slice()]),len=P.length,was=famIssues();   // a link is only kept if it adds no impossibility
- const undo=()=>{bk.forEach(([p,pa,pt])=>{p.parents=pa;p.partners=pt});P.length=len};
+ const bk=P.map(p=>[p,p.parents.slice(),p.partners.slice(),(p.sibs||[]).slice()]),len=P.length,was=famIssues();   // a link is only kept if it adds no impossibility
+ const undo=()=>{bk.forEach(([p,pa,pt,ps])=>{p.parents=pa;p.partners=pt;if(ps.length)p.sibs=ps;else delete p.sibs});P.length=len};
  let err='';
  const par=(c,p)=>c.id===p.id?'Same person':c.parents.includes(p.id)?'Already linked':c.parents.length>=2?c.name+' already has 2 parents':desc(c.id).has(p.id)?'That would make a loop':(c.parents.push(p.id),'');
  const gpar=(g,c)=>{if(!parIds(c.id).length)return c.name+' needs a parent first';if(parIds(c.id).some(p=>M.get(p)?.parents.includes(g.id)))return 'Already linked';const free=parIds(c.id).find(p=>p!==g.id&&(M.get(p)?.parents.length||0)<2&&!desc(p).has(g.id));return free?(M.get(free).parents.push(g.id),''):'Can’t add – their parents are full'};
@@ -556,6 +638,13 @@ $('#file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)
  ask(`Replace everything with ${n.length} people from this backup?`,()=>{P=n;N=nn;commit();say('Restored '+n.length+' people')})}catch(err){say('Not a valid backup file')}};
 const fixed=repair();
 index();render();if(bdOn())bdPush();
-if(fixed)say('Undid '+fixed+' link'+(fixed==1?'':'s')+' that looped the family back on itself');
+// Launching is also when the parents the family already implies are written down for the first time —
+// a tree that was linked by hand for years fills itself in the first time this page runs on it.
+const filled=parFix();
+if(filled)try{localStorage.setItem(KEY,JSON.stringify(P))}catch(e){}
+const said=[];
+if(fixed)said.push('Undid '+fixed+' link'+(fixed==1?'':'s')+' that looped the family back on itself');
+if(filled)said.push('Linked '+filled+' parent'+(filled==1?'':'s')+' automatically');
+if(said.length)say(said.join(' · '));
 if('serviceWorker'in navigator&&!window.Android&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
