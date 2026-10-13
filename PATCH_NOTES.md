@@ -9,6 +9,62 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-13 — v1.0.1: Two marriages side by side, a settings icon, and What's New
+
+A page change: it arrives over the air, nothing to install. The page now carries its own version,
+**v1.0.1**, and shows it in Settings.
+
+### Added
+- **What's New after an update.** The first time a new version runs — which is what the app does the
+  moment an OTA update has been applied — a popup lists what changed in it. The version whose notes have
+  been shown is kept on the device, so the popup appears once per version and not again on every launch.
+  The version is marked seen when the popup is **closed**, not when it is built, so the notes cannot be
+  marked seen without having been put in front of you, and it is marked whichever way the popup is
+  dismissed — its own button, or the phone's back button.
+- **What's New archive in Settings.** Every update this app has ever had, newest first — this one and all
+  32 before it — built from this file at release time and carried in the page itself, so it is there with
+  no network at all.
+- **Two marriages, side by side.** Someone married to two people is drawn in the **middle** of the box,
+  with one husband or wife on the left and the other on the right. The people in a box are ordered so
+  that the two a marriage joins sit next to each other; nobody is drawn twice and nobody in the box is
+  dropped.
+- **Every marriage is drawn as a line between the two cards it belongs to.**
+
+### Changed
+- **The ⋮ menu is now a settings icon** in the top bar — the same page, opened with a gear — and it shows
+  the version of the app at the bottom.
+- **A line is drawn only where there is really a marriage.** The old page drew a bar in every gap between
+  the people in a box, so two people who were not married were joined as if they were, and the marriage
+  that ran past them was missed. A bar is now drawn per marriage, and where it goes is measured from the
+  cards once they are on the page: how wide a card comes out depends on the phone's own font, and a
+  position worked out from a formula drifted as soon as a box held more than the couple.
+- **The list, the outline and the PDF are unchanged**: they still name a family by its eldest, exactly as
+  before. Only the order the box is **drawn** in has changed.
+
+### Unchanged
+- **The stored format is exactly the same.** Nothing new is written down: a marriage is still the partner
+  link it always was, so a backup made here restores into any earlier version and an older backup restores
+  into this one.
+- **No native change, no new APK needed** — this is all in `index.html`.
+
+Verified on the delivered bytes (`index.html` = `app/src/main/assets/index.html`), in a real browser
+(headless Chrome at 390×844, the real page, the real buttons, the real page script), **44 checks**:
+- **The family with two marriages**: the twice-married person is drawn in the middle (not by birth year,
+  and the test uses a person who is the *youngest* of the three), a spouse on each side, exactly two
+  lines, each landing in the gap between two cards, each joining two people who really are partners — and
+  the same again in a family whose box also has children and a connector line leaving it, which is where
+  the old formula drifted.
+- **A couple** (two cards, one line) and **a chain of four marriages** (three lines, and no line between
+  two people who are not married).
+- **The settings icon**, the version shown in Settings, the **archive of all 33 updates** reaching the
+  oldest, and the **What's New popup**: shown, naming v1.0.1, listing what changed, *not* marked seen
+  while it is open, marked seen when it is closed, absent on the next launch, and back again when the
+  page is newer than the last version seen.
+- **The rest of the page** still works: the Everyone outline, the People list, and a person's own page.
+- **Control, the same page as it was, on the same family**: it puts the twice-married person *not* in the
+  middle, joins two people who are not married, has no popup, and still uses the three dots — so the
+  checks measure this change and nothing else.
+
 ## 2026-10-12 — The parents a family already states are linked by themselves
 
 A page change: it arrives over the air, nothing to install.
