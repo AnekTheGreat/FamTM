@@ -9,6 +9,43 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-13 — v1.0.2: What's New is a folded list of short notes
+
+A page change: it arrives over the air, nothing to install. The page now carries **v1.0.2** and shows
+it in Settings.
+
+### Changed
+- **What's New is a list you can read at a glance.** Every update is drawn as one folded block — its
+  date, its version and its title on a single line — and **only the newest one is open**. Tap any other
+  one and it opens where it stands; tap it again and it folds back. Nothing on the page moves, so you
+  keep your place in the list.
+- **Each change is one short line.** A note is written out in full in these patch notes, but in the app
+  each one now shows only its first, short thought — the part before its colon or its dash, or its first
+  sentence — with the whole of it behind **more** beside it, and **less** to put it back. A line that is
+  short already is shown as it is, with nothing to tap.
+- **A note that a later update replaced reads as the thing that replaced it.** Two old notes about a
+  couple's names and about the tree opening collapsed were struck through and superseded; in the folded
+  list they now read as what replaced them, instead of as the thing that was undone.
+- **The popup after an update is the same list.** The first launch of a new version shows the newest
+  update open, with every earlier update folded underneath it — so the popup and the archive in Settings
+  are now the same thing seen twice, and nothing has to be opened twice to read it.
+
+### Unchanged
+- **Nothing was taken away.** The full text of every note is still there, one tap behind **more**, and
+  the archive in Settings still holds every update this app has ever had.
+- The notes themselves are exactly as they were — the same dates, the same titles, the same sentences.
+  Only how they are laid out has changed.
+- A folded update draws nothing but its own line, so the list stays quick to open on a phone even with
+  every update this app has ever had in it: an update's notes are built the first time it is opened.
+
+### Verified
+- 24 new checks in a real browser on the page itself, alongside the 43 that were already there — 67 in
+  all, every one passing: the newest update is open and every older one is closed; a tap on a closed one
+  opens it and a tap again closes it with the row it was tapped on still in the same place on the screen;
+  every summary is under the cap and is really the beginning of its own note, and every note this app has
+  is drawn; **more** shows the whole note and **less** puts the summary back; the superseded notes read as
+  what replaced them; and the popup after an update lists the newest open with the rest folded.
+
 ## 2026-10-13 — v1.0.1: Two marriages side by side, a settings icon, and What's New
 
 A page change: it arrives over the air, nothing to install. The page now carries its own version,
