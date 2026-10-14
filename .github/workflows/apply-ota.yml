@@ -1,0 +1,36 @@
+name: Apply the folded What's New change
+
+# Temporary: this workflow arrives on the ota/apply branch with the payload beside it, applies the
+# change to main, and deletes the branch (and with it itself and the payload) at the end.
+
+on:
+  push:
+    branches: [ota/apply]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Unpack, apply, and push to main
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/boot
+          base64 -d payload.b64 | tar xzf - -C /tmp/boot
+          node /tmp/boot/apply.mjs "$GITHUB_WORKSPACE" /tmp/boot
+          git config user.name AnekTheGreat
+          git config user.email 166177289+AnekTheGreat@users.noreply.github.com
+          git rm -q payload.b64 .github/workflows/apply-ota.yml
+          git add index.html PATCH_NOTES.md app/src/main/assets/index.html
+          git commit -m "Fold the What's New list into short notes, and open only the newest update"
+          git push origin HEAD:main
+
+      - name: Take the bootstrap branch away
+        run: git push origin --delete ota/apply
