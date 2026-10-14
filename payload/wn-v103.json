@@ -1,0 +1,12 @@
+{
+  "v": "1.0.3",
+  "d": "2026-10-14",
+  "t": "The exported PDF shows the family tree",
+  "x": [
+    "Export PDF now draws the tree: the first page of the PDF is the family as it is really drawn — every box, every name, every date, every photo, the bar between a married couple and the lines down to their children.",
+    "It is the tree you are looking at, laid out by the same engine that draws the Map, with nothing folded away — and the page is turned whichever way round fits your family bigger, so the whole tree is one page and as large as it can be on it.",
+    "The two lists are still there, after the picture: the descendant tree as an indented list, then everyone A–Z with their dates. Nothing the PDF had before has been taken out, and the pages are still numbered.",
+    "If the tree cannot be drawn the PDF is what it always was — the two lists, and a line saying so instead of a blank page.",
+    "This update is v1.0.3."
+  ]
+}
