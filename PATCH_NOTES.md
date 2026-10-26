@@ -9,6 +9,53 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+## 2026-10-26 — v1.0.3: A HEIC photo is a photo like any other
+
+This one is **both**: the page carries **v1.0.3** and arrives over the air as usual, but the picture is now
+read by the app instead of by the page, so a phone still on an older APK keeps working exactly as it does
+today and gains nothing until the new one is installed. The APK is **1.3 (versionCode 4)**.
+
+### Changed
+- **The app reads the picture, not the page.** An iPhone's photo, and a modern Android's, is HEIC — and a
+  page running inside the app has no way to draw one, so it was handed the file, could not open it, and
+  said so. The app now turns the picked picture into a JPEG itself (`ImageDecoder`, which knows HEIC/HEIF,
+  AVIF, WebP, PNG, GIF, BMP and JPEG) and hands the page a picture it can always open. The page still
+  keeps the same small photo it always did, so nothing stored changes shape.
+- **A big photo is scaled down while it is decoded, not after.** The page keeps a 240px picture; a 12 MP
+  photo would otherwise need about 48 MB of memory for something that is about to be thrown away. It is
+  decoded at no more than 1024px on its long edge and written out as a JPEG at quality 90.
+- **Files no longer hides a picture it does not recognise.** When a picture is wanted, the Files entry of
+  the chooser offers every file rather than only the ones the file app already calls an image: a HEIC from
+  a cloud app can arrive with no image type at all, and an image-only list quietly left it out. Photos and
+  the Gallery are unchanged. A file that is not a picture is refused when it comes back, with a message.
+- **"Add photo" in the Edit form now names the form as where the picture belongs.** It used to leave that
+  to the file input's own change event, which is how a picture handed straight back by the app could land
+  nowhere in that one form.
+
+### Unchanged
+- **An older app keeps working.** The page still fills the photo from the file input itself when the app
+  cannot hand one back, so a phone on the old APK behaves exactly as before; it simply has no HEIC.
+- Nothing about the stored family changes. A photo is still a data URL in the same field, a backup is
+  byte-for-byte what it was, and a photo already saved is not touched or re-encoded.
+- The camera path, the person's own page (Add photo / Change photo) and the 240px limit are all as they
+  were — they go through the same door, so they gain the new formats too.
+- Before Android 9 there is no HEIF decoder in the platform, so HEIC on such a phone is still refused,
+  and the page now says which of the two it is instead of blaming HEIC in general.
+
+### Verified
+- **15 checks in a real browser** (Chromium, the page served over http, the app's bridge stubbed) —
+  **0 failed**: a picture handed back by the app lands in the Edit form and survives Save; "Add photo"
+  points the form at that picture and opens the input; the page names the right kind of trouble for a new
+  app, an older app and a plain browser; an older app still fills the photo through the input itself from
+  a file with a `.HEIC` name and no type at all; the page carries v1.0.3, Settings shows it, and What's
+  New leads with this update.
+- **The APK builds** — `gradle assembleDebug` with the Android SDK, and the built APK is **versionCode 4 /
+  versionName 1.3** with the v1.0.3 page inside it (`assets/index.html`).
+- **Not verified here:** a HEIC being decoded on a real phone — there is no Android device in this
+  environment. The decode is `ImageDecoder.decodeBitmap`, the platform's own reader, and the fallback if it
+  refuses a file is the old path (the file goes to the page untouched, which says it cannot be opened), so
+  a refusal cannot leave a broken photo behind.
+
 ## 2026-10-13 — v1.0.2: What's New is a folded list of short notes
 
 A page change: it arrives over the air, nothing to install. The page now carries **v1.0.2** and shows

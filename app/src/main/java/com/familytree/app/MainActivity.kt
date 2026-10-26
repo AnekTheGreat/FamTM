@@ -7,6 +7,8 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -28,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.webkit.WebViewAssetLoader
 import java.io.File
+import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -44,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private val otaFile by lazy { File(otaDir, "index.html") }
     private var shot: File? = null                                            // a picture just taken
     private val shotDir by lazy { File(filesDir, "shots").apply { mkdirs() } }
+    private var pickImage = false                                             // the open chooser is asking for a picture
 
     private fun saver(mime: String) = registerForActivityResult(ActivityResultContracts.CreateDocument(mime)) { u ->
         if (u != null) try {
@@ -57,8 +61,20 @@ class MainActivity : AppCompatActivity() {
     private val notifL = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     private val pickL = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val u = r.data?.data ?: r.data?.clipData?.getItemAt(0)?.uri
-        chooser?.onReceiveValue(if (r.resultCode == Activity.RESULT_OK && u != null) arrayOf(u) else null)
+        val cb = chooser
         chooser = null
+        if (r.resultCode != Activity.RESULT_OK || u == null) cb?.onReceiveValue(null)
+        else {
+            // A picture is turned into a JPEG the page can always open, so a HEIC or HEIF photo — a format
+            // no WebView will draw — becomes a photo like any other. Anything this phone cannot decode, or
+            // a file that is not a picture at all, is handed over untouched: the page's own reader then has
+            // its chance, and says so if it cannot open it either. A restore is never touched.
+            val jpg = if (pickImage) toJpeg(u) else null
+            if (jpg != null) {
+                cb?.onReceiveValue(null)
+                photoBack(jpg)
+            } else cb?.onReceiveValue(arrayOf(u))
+        }
     }
 
     // The camera answers here, and the picture is already on disk — so the page is only told where to
@@ -67,9 +83,39 @@ class MainActivity : AppCompatActivity() {
     private val shotL = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val f = shot
         shot = null
-        if (r.resultCode == Activity.RESULT_OK && f != null && f.length() > 0)
-            web.evaluateJavascript("window.__photo&&window.__photo('$HOST/photos/${f.name}')", null)
+        if (r.resultCode == Activity.RESULT_OK && f != null && f.length() > 0) photoBack(f)
         else f?.delete()
+    }
+
+    // The page is only ever told where the picture is, which is an address it is allowed to read, so a
+    // picture never has to be pushed through JavaScript as one enormous string.
+    private fun photoBack(f: File) =
+        web.evaluateJavascript("window.__photo&&window.__photo('$HOST/photos/${f.name}')", null)
+
+    // Whatever the phone can read, as a JPEG in the app's own folder: HEIC/HEIF (iPhone and modern
+    // Android photos), AVIF, WebP, PNG, GIF, BMP and a JPEG alike. The page keeps a 240px picture, so the
+    // photo is scaled down while it is decoded rather than after — a 12 MP photo would otherwise need
+    // ~48 MB for a picture that is about to be thrown away. Null when this phone cannot decode the file,
+    // and nothing is left behind when that happens.
+    private fun toJpeg(u: Uri): File? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null   // no HEIF decoder before Android 9
+        return try {
+            val src = ImageDecoder.createSource(contentResolver, u)
+            val bmp: Bitmap = ImageDecoder.decodeBitmap(src) { d, info, _ ->
+                val long = maxOf(info.size.width, info.size.height)
+                if (long > 1024) {
+                    val s = 1024f / long
+                    d.setTargetSize(Math.round(info.size.width * s).coerceAtLeast(1),
+                                    Math.round(info.size.height * s).coerceAtLeast(1))   // never a zero side
+                }
+                d.allocator = ImageDecoder.ALLOCATOR_SOFTWARE     // a hardware bitmap cannot be drawn or scaled
+            }
+            shotDir.listFiles { f -> f.name.startsWith("pick-") }?.forEach { it.delete() }   // only the newest is kept
+            val f = File(shotDir, "pick-${System.currentTimeMillis()}.jpg")
+            FileOutputStream(f).use { bmp.compress(Bitmap.CompressFormat.JPEG, 90, it) }
+            bmp.recycle()
+            if (f.length() > 0) f else { f.delete(); null }
+        } catch (e: Throwable) { null }
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
@@ -84,6 +130,12 @@ class MainActivity : AppCompatActivity() {
         // the "Take photo" button in the page: open the camera and put the picture into the form
         @JavascriptInterface
         fun photo() { runOnUiThread { takePhoto() } }
+
+        // asked by the page before it blames a picture: this version reads HEIC/HEIF and every other
+        // format the phone can decode itself, so a picture that still cannot be opened is the file's fault
+        // and not an old app's — the page says which, instead of telling someone to update for nothing
+        @JavascriptInterface
+        fun pics() = 2
 
         // the Birthdays page hands over the birthdays to remind about — the day and month of each
         // living person — and whether reminders are wanted at all
@@ -169,9 +221,17 @@ class MainActivity : AppCompatActivity() {
                 chooser?.onReceiveValue(null); chooser = cb
                 val types = p?.acceptTypes?.toList() ?: emptyList()
                 val wantsImages = types.isEmpty() || types.any { it.startsWith("image/") }
-                val files = p?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                pickImage = wantsImages
+                // Files is offered every file when a picture is wanted, not only the ones it already calls
+                // an image: a HEIC from a cloud app can arrive with no image type at all, and an image-only
+                // list would then quietly leave it out. A file that is not a picture is refused on the way
+                // back, with a message, so nothing is lost and nothing is opened as a photo by accident.
+                val files = if (wantsImages) Intent(Intent.ACTION_GET_CONTENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
-                    type = if (wantsImages) "image/*" else "*/*"
+                    type = "*/*"
+                } else p?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
                 }
                 val sheet = mutableListOf<Intent>()
                 if (wantsImages) {
