@@ -70,12 +70,20 @@ jobs:
           done
           echo "signed and packaged: $APK ($(du -h "$APK" | cut -f1)), $AAB ($(du -h "$AAB" | cut -f1))"
 
+      # Flat, versioned names in one folder, the shape SideCut's releases have.
+      - name: Name the outputs
+        run: |
+          V="1.4.${GITHUB_RUN_NUMBER}"
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk        "dist/FamTM-$V-debug.apk"
+          cp app/build/outputs/apk/release/app-release.apk    "dist/FamTM-$V.apk"
+          cp app/build/outputs/bundle/debug/app-debug.aab     "dist/FamTM-$V-debug.aab"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/FamTM-$V.aab"
+          echo '--- dist ---'
+          ls -l dist
+
       - uses: actions/upload-artifact@v4
         with:
           name: family-tree-apk-aab
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/debug/*.aab
-            app/build/outputs/bundle/release/*.aab
+          path: dist/*
           if-no-files-found: error
