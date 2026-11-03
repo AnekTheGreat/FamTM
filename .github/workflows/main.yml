@@ -6,6 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,10 +28,40 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build debug APK
-        run: gradle assembleDebug --no-daemon
+      # No key material is in the repository: the keystore arrives from the KEYSTORE_BASE64 secret
+      # and lives only for the length of this job.
+      - name: Reconstruct the signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::the KEYSTORE_BASE64 secret is not set for this repository"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/famtm.p12"
+          echo "SIGNING_STORE_FILE=$RUNNER_TEMP/famtm.p12" >> "$GITHUB_ENV"
+
+      - name: Build the APKs
+        env:
+          VERSION_NAME: 1.4.${{ github.run_number }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: famtm
+        run: gradle assembleDebug assembleRelease --no-daemon
+
+      - name: Check the release APK is signed
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::the release APK is unsigned - the signing secrets did not reach the build"
+            ls -l app/build/outputs/apk/release/ || true
+            exit 1
+          fi
+          echo "signed and packaged: $APK ($(du -h "$APK" | cut -f1))"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: family-tree-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: family-tree-apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

@@ -2,6 +2,15 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// Signing comes from the environment: the keystore is rebuilt from the KEYSTORE_BASE64 secret in
+// CI and pointed at by SIGNING_STORE_FILE. Without it the debug build still works and the release
+// build is simply unsigned. The locals are not named storePassword/keyAlias on purpose - inside
+// signingConfigs those are the DSL's own properties.
+val signingStorePath: String? = System.getenv("SIGNING_STORE_FILE")
+val signingStorePass: String? = System.getenv("SIGNING_STORE_PASSWORD")
+val signingAlias: String = System.getenv("SIGNING_KEY_ALIAS") ?: "famtm"
+
 android {
     namespace = "com.familytree.app"
     compileSdk = 34
@@ -9,9 +18,28 @@ android {
         applicationId = "com.familytree.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = (System.getenv("VERSION_CODE") ?: "4").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: "1.3"
     }
+
+    signingConfigs {
+        if (signingStorePath != null && signingStorePass != null) {
+            create("release") {
+                storeFile = file(signingStorePath)
+                storeType = "PKCS12"
+                storePassword = signingStorePass
+                keyAlias = signingAlias
+                keyPassword = signingStorePass
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
+
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
 }
