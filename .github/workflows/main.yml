@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK + AAB
 
 on:
   push:
@@ -41,27 +41,41 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/famtm.p12"
           echo "SIGNING_STORE_FILE=$RUNNER_TEMP/famtm.p12" >> "$GITHUB_ENV"
 
-      - name: Build the APKs
+      # Both formats, both build types: assemble* = APK, bundle* = AAB.
+      - name: Build the APKs and AABs
         env:
           VERSION_NAME: 1.4.${{ github.run_number }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: famtm
-        run: gradle assembleDebug assembleRelease --no-daemon
+        run: |
+          gradle assembleDebug assembleRelease bundleDebug bundleRelease \
+            --no-daemon
 
-      - name: Check the release APK is signed
+      - name: Check the release APK is signed and both AABs exist
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          DAAB=app/build/outputs/bundle/debug/app-debug.aab
           if [ ! -f "$APK" ]; then
             echo "::error::the release APK is unsigned - the signing secrets did not reach the build"
             ls -l app/build/outputs/apk/release/ || true
             exit 1
           fi
-          echo "signed and packaged: $APK ($(du -h "$APK" | cut -f1))"
+          for f in "$AAB" "$DAAB"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::$f was not produced - bundleDebug/bundleRelease did not run"
+              ls -l app/build/outputs/bundle/ || true
+              exit 1
+            fi
+          done
+          echo "signed and packaged: $APK ($(du -h "$APK" | cut -f1)), $AAB ($(du -h "$AAB" | cut -f1))"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: family-tree-apk
+          name: family-tree-apk-aab
           path: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/debug/*.aab
+            app/build/outputs/bundle/release/*.aab
           if-no-files-found: error

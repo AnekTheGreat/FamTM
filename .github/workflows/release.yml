@@ -1,4 +1,4 @@
-name: Release APK
+name: Release APK + AAB
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build:
-    name: Signed APK and GitHub Release
+    name: Signed APK, AAB and GitHub Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,27 +51,36 @@ jobs:
           echo "name=$V" >> "$GITHUB_OUTPUT"
           echo "releasing $V"
 
-      - name: Build the signed release APK
+      # A release publishes both formats: the APK for a phone, the AAB for Play Console.
+      - name: Build the signed release APK and AAB
         env:
           VERSION_NAME: ${{ steps.v.outputs.name }}
           VERSION_CODE: ${{ github.run_number }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: famtm
-        run: gradle assembleRelease --no-daemon
+        run: gradle assembleRelease bundleRelease --no-daemon
 
-      - name: Name the APK
+      - name: Name the files
         run: |
           APK=app/build/outputs/apk/release/app-release.apk
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          STATUS=0
           if [ ! -f "$APK" ]; then
             echo "::error::no signed APK was produced - check the keystore secrets"
-            exit 1
+            STATUS=1
           fi
+          if [ ! -f "$AAB" ]; then
+            echo "::error::no AAB was produced by bundleRelease"
+            STATUS=1
+          fi
+          [ "$STATUS" -eq 0 ] || exit 1
           cp "$APK" "FamTM-${{ steps.v.outputs.name }}.apk"
+          cp "$AAB" "FamTM-${{ steps.v.outputs.name }}.aab"
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.v.outputs.name }}
           name: FamTM ${{ steps.v.outputs.name }}
-          files: FamTM-*.apk
+          files: FamTM-*
           generate_release_notes: true
