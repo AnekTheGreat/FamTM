@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish, e.g. 1.4.0'
+        description: 'Version to publish, e.g. 1.5.0'
         required: true
 
 permissions:
@@ -76,11 +76,14 @@ jobs:
           [ "$STATUS" -eq 0 ] || exit 1
           cp "$APK" "FamTM-${{ steps.v.outputs.name }}.apk"
           cp "$AAB" "FamTM-${{ steps.v.outputs.name }}.aab"
+          ls -l FamTM-*
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.v.outputs.name }}
           name: FamTM ${{ steps.v.outputs.name }}
-          files: FamTM-*
+          files: |
+            FamTM-${{ steps.v.outputs.name }}.apk
+            FamTM-${{ steps.v.outputs.name }}.aab
           generate_release_notes: true
