@@ -166,6 +166,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }.start()
         }
+
+        // the ♥ button the app puts beside ⟳: the five amounts SideCut offers, each a Stripe page
+        @JavascriptInterface
+        fun tip() { runOnUiThread { support() } }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -189,6 +193,11 @@ class MainActivity : AppCompatActivity() {
         web.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(v: WebView?, r: WebResourceRequest?): WebResourceResponse? =
                 r?.let { loader.shouldInterceptRequest(it.url) }
+
+            // Every copy of the page is served the same way — bundled, or fetched over OTA — so the tip
+            // button is put into the top bar here, once per load, rather than written into index.html
+            // where an older OTA copy would not have it.
+            override fun onPageFinished(v: WebView?, url: String?) { injectTip() }
 
             override fun onReceivedError(v: WebView?, r: WebResourceRequest?, e: WebResourceError?) {
                 if (r != null && r.isForMainFrame && r.url.path?.startsWith("/ota/") == true) {
@@ -264,6 +273,42 @@ class MainActivity : AppCompatActivity() {
             }
         })
         checkOta()
+    }
+
+    /**
+     * Add the tip button to the page's own top bar, right before ⟳, borrowing its class so it looks
+     * like it was always there. It only reports a tap - the amounts are shown by the app, so an old
+     * page and a new one behave identically.
+     */
+    private fun injectTip() {
+        web.evaluateJavascript(
+            """
+            (function(){
+              if (document.getElementById('tp')) return;
+              var r = document.getElementById('rf');
+              if (!r || !r.parentNode) return;
+              var b = document.createElement('button');
+              b.id = 'tp';
+              b.className = r.className;
+              b.setAttribute('aria-label', 'Support Family Tree');
+              b.type = 'button';
+              b.textContent = '\u2665';
+              b.style.color = '#c0392b';
+              b.addEventListener('click', function(){ if (window.Android && Android.tip) Android.tip(); });
+              r.parentNode.insertBefore(b, r);
+            })()
+            """.trimIndent(), null
+        )
+    }
+
+    /** The tip jar: the five amounts SideCut offers, each opening Stripe's own page. */
+    private fun support() {
+        val labels = Support.LINKS.map { Support.label(it.first) }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Support Family Tree")
+            .setItems(labels) { _, which -> Support.open(this, Support.LINKS[which].second) }
+            .setNegativeButton("Not now", null)
+            .show()
     }
 
     // Take photo: the camera app is handed a one-off writable URI pointing into the app's own files, so
