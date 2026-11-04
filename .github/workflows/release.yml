@@ -24,9 +24,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # 8.11.1 is AGP 8.10.1's own floor, and it is the same pin main.yml carries: on 8.9 the plugin
+      # refuses to configure the build at all, so no APK is produced.
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       - name: Reconstruct the signing keystore
         env:
