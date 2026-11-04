@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Base64
+import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
 import android.webkit.ValueCallback
@@ -23,11 +24,15 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import java.io.File
 import java.io.FileOutputStream
@@ -119,6 +124,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
+
+    /** A colour the theme already carries, so the strip behind the bars matches the app either way. */
+    private fun themeColor(attr: Int): Int {
+        val a = obtainStyledAttributes(intArrayOf(attr))
+        val c = a.getColor(0, 0xFF000000.toInt())
+        a.recycle()
+        return c
+    }
 
     inner class Bridge {
         @JavascriptInterface
@@ -263,7 +276,26 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         }
-        setContentView(web)
+        // From API 35 Android draws every app edge to edge whether it asks to or not, and from API 36
+        // there is no opting out (the attribute is ignored), so the page would be drawn under the clock
+        // and the gesture bar. The page fills the window inside a frame that is padded by the status bar,
+        // the navigation bar and the keyboard, so its own top bar is not behind the status bar and a field
+        // is never left under the keyboard when one is open.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val frame = FrameLayout(this).apply {
+            // The strips the padding leaves behind the bars are painted with the theme's own background,
+            // so light and dark mode both keep their edges instead of showing a wrong-coloured band.
+            setBackgroundColor(themeColor(android.R.attr.colorBackground))
+        }
+        frame.addView(web, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        ViewCompat.setOnApplyWindowInsetsListener(frame) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+        setContentView(frame)
         web.loadUrl(if (otaFile.exists()) "$HOST/ota/index.html" else "$HOST/assets/index.html")
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
