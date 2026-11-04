@@ -13,13 +13,16 @@ val signingAlias: String = System.getenv("SIGNING_KEY_ALIAS") ?: "famtm"
 
 android {
     namespace = "com.familytree.app"
-    compileSdk = 34
+    // API 36 is not a preference: Play has refused an upload that targets less since 31 August 2026,
+    // and AGP 8.10.1 is the oldest plugin that can compile against it.
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.familytree.app"
         minSdk = 24
-        targetSdk = 34
-        versionCode = (System.getenv("VERSION_CODE") ?: "4").toInt()
-        versionName = System.getenv("VERSION_NAME") ?: "1.3"
+        targetSdk = 36
+        // 1.4 (5) installs over 1.3 (4) as an ordinary update, so the family on the phone is kept.
+        versionCode = (System.getenv("VERSION_CODE") ?: "5").toInt()
+        versionName = System.getenv("VERSION_NAME") ?: "1.4"
     }
 
     signingConfigs {

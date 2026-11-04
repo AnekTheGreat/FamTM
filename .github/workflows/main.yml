@@ -24,9 +24,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # AGP 8.10.1 will not run on anything older than 8.11.1, and the repository carries no wrapper.
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.11.1"
 
       # No key material is in the repository: the keystore arrives from the KEYSTORE_BASE64 secret
       # and lives only for the length of this job.
@@ -50,6 +51,19 @@ jobs:
         run: |
           gradle assembleDebug assembleRelease bundleDebug bundleRelease \
             --no-daemon
+
+      # Play refuses an upload that targets less than API 36, and the number in the build file is only
+      # a claim until the built package is read back - so the APK itself is asked.
+      - name: Check the APK targets API 36
+        run: |
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          BT=$(ls "$SDK/build-tools" | sort -V | tail -1)
+          "$SDK/build-tools/$BT/aapt2" dump badging app/build/outputs/apk/release/app-release.apk > "$RUNNER_TEMP/badging.txt"
+          grep -E "^(package|sdkVersion|targetSdkVersion)" "$RUNNER_TEMP/badging.txt"
+          if ! grep -q "targetSdkVersion:'36'" "$RUNNER_TEMP/badging.txt"; then
+            echo "::error::the built APK does not target API 36 - Play will refuse it"
+            exit 1
+          fi
 
       - name: Check the release APK is signed and both AABs exist
         run: |
