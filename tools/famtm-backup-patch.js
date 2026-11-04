@@ -91,7 +91,7 @@ const must = [
 ];
 for (const m of must) if (!s.includes(m)) throw new Error('missing after patch: ' + m);
 if (s.length < was + 2000 || s.length > was + 6000) throw new Error('unexpected size: ' + s.length);
-if (s.indexOf('Import a backup') !== s.lastIndexOf('Import a backup')) throw new Error('label written twice');
+if (s.split('data-act="restore">Import a backup<').length !== 2) throw new Error('the menu label was not written exactly once');
 
 fs.writeFileSync(F, s);
 console.log('patched ' + was + ' -> ' + s.length + ' bytes');
