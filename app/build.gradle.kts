@@ -12,12 +12,17 @@ val signingStorePass: String? = System.getenv("SIGNING_STORE_PASSWORD")
 val signingAlias: String = System.getenv("SIGNING_KEY_ALIAS") ?: "famtm"
 
 android {
+    // The sources stay under com.familytree.app: that is the package the Kotlin files declare and
+    // the one the manifest's ".MainActivity" resolves against, and it never leaves the build. The
+    // name the phone and Play see is the applicationId below, and that one had to move: a package
+    // name is unique per store, com.familytree.app is already someone else's listing, and a build
+    // under it could never be uploaded.
     namespace = "com.familytree.app"
     // API 36 is not a preference: Play has refused an upload that targets less since 31 August 2026,
     // and AGP 8.10.1 is the oldest plugin that can compile against it.
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.familytree.app"
+        applicationId = "com.FamTM.app"
         minSdk = 24
         targetSdk = 36
         // 1.4 (5) installs over 1.3 (4) as an ordinary update, so the family on the phone is kept.
