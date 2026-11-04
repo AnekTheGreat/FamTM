@@ -12,6 +12,8 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Base64
 import android.view.ViewGroup
@@ -41,8 +43,10 @@ import java.net.URL
 import java.security.MessageDigest
 
 private const val HOST = "https://appassets.androidplatform.net"
-// OTA source: push a new index.html here and installed apps pick it up on next launch
-private const val OTA_URL = "https://raw.githubusercontent.com/AnekTheGreat/FamTM/main/app/src/main/assets/index.html"
+// Where the page comes from: the newest release's tag, read from the repository's own feed, and then
+// that tag's index.html. The screen on a phone is therefore always the page a release shipped - never
+// whatever the branch says today - and the APK follows the same rule, changing only when this file does.
+private const val REPO = "AnekTheGreat/FamTM"
 
 class MainActivity : AppCompatActivity() {
     private lateinit var web: WebView
@@ -53,6 +57,8 @@ class MainActivity : AppCompatActivity() {
     private var shot: File? = null                                            // a picture just taken
     private val shotDir by lazy { File(filesDir, "shots").apply { mkdirs() } }
     private var pickImage = false                                             // the open chooser is asking for a picture
+    private val main = Handler(Looper.getMainLooper())
+    private var drawn: Runnable? = null                                       // a stored page that never draws is put back
 
     private fun saver(mime: String) = registerForActivityResult(ActivityResultContracts.CreateDocument(mime)) { u ->
         if (u != null) try {
@@ -210,7 +216,11 @@ class MainActivity : AppCompatActivity() {
             // Every copy of the page is served the same way — bundled, or fetched over OTA — so the tip
             // button is put into the top bar here, once per load, rather than written into index.html
             // where an older OTA copy would not have it.
-            override fun onPageFinished(v: WebView?, url: String?) { injectTip() }
+            override fun onPageFinished(v: WebView?, url: String?) {
+                injectTip()
+                if (url != null && url.contains("/ota/")) watchDraw(v)
+                else drawn?.let { main.removeCallbacks(it) }
+            }
 
             override fun onReceivedError(v: WebView?, r: WebResourceRequest?, e: WebResourceError?) {
                 if (r != null && r.isForMainFrame && r.url.path?.startsWith("/ota/") == true) {
@@ -365,21 +375,76 @@ class MainActivity : AppCompatActivity() {
 
     private fun sha(b: ByteArray) = MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
 
+    /** A request GitHub answers: no User-Agent is a 403, and the cache-buster keeps a stale copy out. */
+    private fun open(u: String): HttpURLConnection =
+        (URL(u).openConnection() as HttpURLConnection).apply {
+            setRequestProperty("User-Agent", "FamTM")
+            connectTimeout = 8000
+            readTimeout = 8000
+            instanceFollowRedirects = true
+        }
+
+    /**
+     * The newest release's tag, from the repository's own feed rather than the API: the feed has no
+     * anonymous limit and no key, and each entry names the tag the page is pinned to. Null when the
+     * feed cannot be read, which is the phone being offline rather than anything being wrong.
+     */
+    private fun newestTag(): String? = try {
+        val c = open("https://github.com/$REPO/releases.atom?t=${System.currentTimeMillis()}")
+        if (c.responseCode != 200) null
+        else {
+            val xml = c.inputStream.bufferedReader().use { it.readText() }
+            Regex("""/releases/tag/([^"<]+)""").find(xml)?.groupValues?.get(1)
+        }
+    } catch (e: Exception) { null }
+
     // "updated" / "current" / "bad" / "offline"
     private fun otaUpdate(): String = try {
-        val c = URL("$OTA_URL?t=${System.currentTimeMillis()}").openConnection() as HttpURLConnection
-        c.connectTimeout = 8000; c.readTimeout = 8000
-        if (c.responseCode != 200) "offline"
+        val tag = newestTag()
+        if (tag == null) "offline"
         else {
-            val bytes = c.inputStream.use { it.readBytes() }
-            if (bytes.size < 2000 || !String(bytes).contains("familytree.v1")) "bad"
+            val c = open("https://raw.githubusercontent.com/$REPO/$tag/app/src/main/assets/index.html?t=${System.currentTimeMillis()}")
+            if (c.responseCode != 200) "offline"
             else {
-                val current = if (otaFile.exists()) otaFile.readBytes() else assets.open("index.html").use { it.readBytes() }
-                if (sha(bytes) == sha(current)) "current"
-                else { val tmp = File(otaDir, "index.html.tmp"); tmp.writeBytes(bytes); tmp.renameTo(otaFile); "updated" }
+                val bytes = c.inputStream.use { it.readBytes() }
+                if (bytes.size < 2000 || !String(bytes).contains("familytree.v1")) "bad"
+                else {
+                    val current = if (otaFile.exists()) otaFile.readBytes() else assets.open("index.html").use { it.readBytes() }
+                    if (sha(bytes) == sha(current)) "current"
+                    else {
+                        val tmp = File(otaDir, "index.html.tmp")
+                        tmp.writeBytes(bytes)
+                        // A rename is the only way the file appears, so a half-written page is never served.
+                        if (tmp.renameTo(otaFile)) "updated" else { tmp.delete(); "bad" }
+                    }
+                }
             }
         }
     } catch (e: Exception) { "offline" }
+
+    /**
+     * A stored page that loads but draws nothing is the one failure an over-the-air copy can hide, and
+     * it is the one that matters: a family tree that opens blank. Nine seconds after a stored page says
+     * it loaded, its own top bar has to be there and the page has to hold text; when it is not, the copy
+     * is deleted and the bundled page is drawn instead, so the worst a bad update can do is put back
+     * the screen the APK shipped with.
+     */
+    private fun watchDraw(v: WebView?) {
+        drawn?.let { main.removeCallbacks(it) }
+        val check = Runnable {
+            v?.evaluateJavascript(
+                "(document.getElementById('top')&&document.body&&document.body.innerText.length>40)?'y':'n'"
+            ) { r ->
+                if (r == null || !r.contains("y")) {
+                    otaFile.delete()
+                    v.loadUrl("$HOST/assets/index.html")
+                    toast("FamTM went back to the screen it ships with")
+                }
+            }
+        }
+        drawn = check
+        main.postDelayed(check, 9000L)
+    }
 
     private fun checkOta() {
         Thread { if (otaUpdate() == "updated") runOnUiThread { toast("Update ready – tap ⟳ to apply") } }.start()
