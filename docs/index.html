@@ -48,7 +48,8 @@
 <p>The app does not read your contacts, your calendar, your messages, your files, your location or your accounts, and it has no permission to do any of those things. Everyone in the tree is typed in or imported by you.</p>
 
 <h2>Camera and photos</h2>
-<p>You can take a photo or pick one from the phone to add to a person. When you take one, the camera app is handed a one-off permission to write into the app's own private folder; the app itself declares no camera and no storage permission, and the picture is never added to your phone's gallery. Only the most recent picture waiting to be added is kept, and it is deleted once it has been used or discarded. A picture you pick is read once, scaled down, and stored with the person it belongs to.</p>
+<p>You can take a photo or pick one from the phone to add to a person. When you take one, the camera app is handed a one-off permission to write into the app's own private folder; the app itself declares no camera and no storage permission, and the picture is never added to your phone's gallery.</p>
+<p>Only the most recent picture waiting to be added is kept: that folder is emptied the next time you take or pick a picture, and when the app starts. A picture you pick is read once, scaled down, and stored with the person it belongs to.</p>
 <p>Nothing you photograph or pick is sent anywhere by the app.</p>
 
 <h2>Birthday reminders</h2>
@@ -60,7 +61,7 @@
 <h2>What leaves your phone</h2>
 <h3>Looking for a newer version of the interface</h3>
 <p>On launch, and when you tap the ⟳ button, the app asks this project's GitHub repository for a newer copy of its own interface page. Like any web request, that one carries your IP address and standard request headers, which GitHub receives and handles under <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>. It carries no identifier for you or your phone, and nothing from your family tree — no names, notes, photos or birthdays.</p>
-<p>If a newer page is found it is saved in the app's private storage and used the next time the app opens, so the interface can be corrected without waiting for an app-store update. An app update you install always wins over that downloaded copy, and if a downloaded page fails to load the app falls back to the interface built into the installed version.</p>
+<p>If a newer page is found it is saved in the app's private storage and used the next time the app opens, so the interface can be corrected without waiting for a store update. An app update you install always wins over that downloaded copy, and if a downloaded page fails to load the app falls back to the interface built into the installed version.</p>
 <p>There is no update check on any other schedule, and the app opens no other connection.</p>
 
 <h2>What we never do</h2>
