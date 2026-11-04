@@ -48,17 +48,42 @@ jobs:
             V="${{ inputs.version }}"
           fi
           if [ -z "$V" ]; then echo "no version resolved"; exit 1; fi
+          # The version code is the clock, in UTC, to the hour: 26110421 for the 9pm build of 4 Nov 2026.
+          # It has to be higher than the code already on the phone, and a run number cannot promise that -
+          # GitHub numbers each workflow's runs separately, so this file was at run 2 while main.yml was at
+          # 43. A release built from run 3 would have carried versionCode 3, lower than the 5 every APK from
+          # main.yml carries, and Android refuses a lower one as a downgrade.
+          C="$(date -u +%y%m%d%H)"
           echo "name=$V" >> "$GITHUB_OUTPUT"
-          echo "releasing $V"
+          echo "code=$C" >> "$GITHUB_OUTPUT"
+          echo "releasing $V (versionCode $C)"
 
       # A release publishes both formats: the APK for a phone, the AAB for Play Console.
       - name: Build the signed release APK and AAB
         env:
           VERSION_NAME: ${{ steps.v.outputs.name }}
-          VERSION_CODE: ${{ github.run_number }}
+          VERSION_CODE: ${{ steps.v.outputs.code }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: famtm
         run: gradle assembleRelease bundleRelease --no-daemon
+
+      # The APK itself is asked, so the package and version on the release are the ones really inside it
+      # and not what the build file claimed.
+      - name: Check the APK's package, version and target
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          BT=$(ls "$SDK/build-tools" | sort -V | tail -1)
+          "$SDK/build-tools/$BT/aapt2" dump badging "$APK" > "$RUNNER_TEMP/badging.txt"
+          grep -E "^(package|sdkVersion|targetSdkVersion)" "$RUNNER_TEMP/badging.txt"
+          if ! grep -q "package: name='com.FamTM.app'" "$RUNNER_TEMP/badging.txt"; then
+            echo "::error::the APK is not com.FamTM.app - the id this build used is not the one in app/build.gradle.kts"
+            exit 1
+          fi
+          if ! grep -q "versionCode='${{ steps.v.outputs.code }}'" "$RUNNER_TEMP/badging.txt"; then
+            echo "::error::the APK does not carry versionCode ${{ steps.v.outputs.code }} - a phone would refuse it as a downgrade"
+            exit 1
+          fi
 
       - name: Name the files
         run: |

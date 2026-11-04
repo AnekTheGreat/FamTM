@@ -42,10 +42,18 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/famtm.p12"
           echo "SIGNING_STORE_FILE=$RUNNER_TEMP/famtm.p12" >> "$GITHUB_ENV"
 
+      # A versionCode that rises on every build, from the clock in UTC: 26110421 for the 9pm build of
+      # 4 Nov 2026. The run number cannot do this job - GitHub counts each workflow's runs separately (this
+      # file is at 43, release.yml at 3) - and a build whose code is lower than the one already on the phone
+      # is refused as a downgrade, however new its contents are.
+      - name: Resolve the build version
+        run: |
+          echo "VERSION_NAME=1.4.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$(date -u +%y%m%d%H)" >> "$GITHUB_ENV"
+
       # Both formats, both build types: assemble* = APK, bundle* = AAB.
       - name: Build the APKs and AABs
         env:
-          VERSION_NAME: 1.4.${{ github.run_number }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: famtm
         run: |
