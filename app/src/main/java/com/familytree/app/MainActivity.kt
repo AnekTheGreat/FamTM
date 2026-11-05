@@ -398,29 +398,44 @@ class MainActivity : AppCompatActivity() {
         }
     } catch (e: Exception) { null }
 
+    /**
+     * The page is read from `main` first, and from the newest release tag only if the branch cannot
+     * be read.
+     *
+     * It used to be the tag alone, which meant a page-only change could not reach a phone at all
+     * until somebody cut a release for it - the one thing an over-the-air screen exists to avoid.
+     * A page change is a commit on `main`, and this is where it lands; the tag stays as the fallback
+     * so a phone still gets the last published page when the branch is unreachable.
+     */
     // "updated" / "current" / "bad" / "offline"
     private fun otaUpdate(): String = try {
-        val tag = newestTag()
-        if (tag == null) "offline"
+        takeFrom("main") ?: newestTag()?.let { takeFrom(it) } ?: "offline"
+    } catch (e: Exception) { "offline" }
+
+    /**
+     * One ref, read and, when it really is newer, swapped in. Null means there is nothing to say
+     * about this ref: it is not there, or it answered with something that is not the family tree, so
+     * the caller can try the next source instead of calling it offline.
+     */
+    private fun takeFrom(ref: String): String? = try {
+        val c = open("https://raw.githubusercontent.com/$REPO/$ref/app/src/main/assets/index.html?t=${System.currentTimeMillis()}")
+        if (c.responseCode != 200) null
         else {
-            val c = open("https://raw.githubusercontent.com/$REPO/$tag/app/src/main/assets/index.html?t=${System.currentTimeMillis()}")
-            if (c.responseCode != 200) "offline"
+            val bytes = c.inputStream.use { it.readBytes() }
+            // A page that is not the family tree is not an update, whatever the server answered.
+            if (bytes.size < 2000 || !String(bytes).contains("familytree.v1")) null
             else {
-                val bytes = c.inputStream.use { it.readBytes() }
-                if (bytes.size < 2000 || !String(bytes).contains("familytree.v1")) "bad"
+                val current = if (otaFile.exists()) otaFile.readBytes() else assets.open("index.html").use { it.readBytes() }
+                if (sha(bytes) == sha(current)) "current"
                 else {
-                    val current = if (otaFile.exists()) otaFile.readBytes() else assets.open("index.html").use { it.readBytes() }
-                    if (sha(bytes) == sha(current)) "current"
-                    else {
-                        val tmp = File(otaDir, "index.html.tmp")
-                        tmp.writeBytes(bytes)
-                        // A rename is the only way the file appears, so a half-written page is never served.
-                        if (tmp.renameTo(otaFile)) "updated" else { tmp.delete(); "bad" }
-                    }
+                    val tmp = File(otaDir, "index.html.tmp")
+                    tmp.writeBytes(bytes)
+                    // A rename is the only way the file appears, so a half-written page is never served.
+                    if (tmp.renameTo(otaFile)) "updated" else { tmp.delete(); "bad" }
                 }
             }
         }
-    } catch (e: Exception) { "offline" }
+    } catch (e: Exception) { null }
 
     /**
      * A stored page that loads but draws nothing is the one failure an over-the-air copy can hide, and

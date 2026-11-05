@@ -2,13 +2,51 @@
 
 Delivered to installed apps **over the air (OTA)**: on launch the app downloads the
 latest `app/src/main/assets/index.html` from `main` and applies it the next time it is
-opened. Only native changes require a new APK.
+opened (the newest release tag is read only when `main` cannot be). Only native changes
+require a new APK.
 
 Your family tree is stored on the device under a stable, versioned format and is
 migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+
+## 2026-11-05 — v1.6.1: the notes catch up, a backup can be added, and the page follows `main`
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.1** now.
+
+### Changed
+- **The page finally says which version it is.** It had been calling itself **v1.0.3** since 26 October while
+the app was on 1.5.0 and 1.6.0, so What's New had nothing to say about the birthdays — the popup stayed silent
+after an update that changed something. The page carries **v1.6.1** and its notes name the birthday hand-off,
+so the popup appears on the first launch after this update, once.
+- **The page is read from `main`, not from the last release tag.** The app used to fetch the page the newest
+release was tagged with, so a page-only change could not reach a phone until a release was cut for it — the one
+thing an over-the-air screen exists to avoid. `main` is read first now and the newest tag is kept as the
+fallback, so a phone still gets the last published page when the branch cannot be reached. A page that is not
+the family tree is still refused, and a bad copy still falls back to the screen the APK ships with.
+- **A backup can be added to the family instead of replacing it.** *Import a backup* used to have one answer —
+replace everything — so a file from another phone could only be restored over the family already here. It now
+asks: **Add to my family** brings the people and the notes in beside the ones you have, and anyone this phone
+already has is the same person and is left exactly as they were, so the same file cannot be added twice.
+**Replace everything** is still there, unchanged.
+- **Your settings travel with the file.** *Export everything* writes the birthday reminders, the automatic
+parent linking and the update you have already read into the backup, and restoring one puts them back, so a
+new phone opens the way the old one did.
+- **The menu says what the buttons do** — *Export everything* and *Import a backup* — instead of *Backup
+(JSON)* and *Restore from backup*, which read as though the file were the app rather than the family in it.
+
+### Unchanged
+- Nothing about the family is stored differently: the shape is the same, only with a settings block added, so a
+backup made here restores into any earlier version and an older backup still restores into this one.
+- The tree, the reminders and the people are exactly as they were.
+
+### Verified
+- The page's What's New block is read back out of the delivered page and parsed, and its newest entry is
+**v1.6.1**; the page names **v1.6.1** in its own version constant; and the two copies of the page
+(`index.html` and `app/src/main/assets/index.html`) are byte-for-byte identical.
+- **Not verified here:** the Android half (reading the page from `main`, falling back to the tag) is reviewed
+rather than compiled — CI builds the APK on push.
 
 ## 2026-11-05 — v1.5.0: the birthdays are shared with UJournal
 
