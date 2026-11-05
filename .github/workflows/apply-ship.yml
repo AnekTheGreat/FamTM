@@ -17,10 +17,12 @@ jobs:
           set -e
           git config user.name "AnekTheGreat"
           git config user.email "166177289+AnekTheGreat@users.noreply.github.com"
-          # git apply counts every line of a hunk, and a blank line after the last one is counted
-          # too - so the file is trimmed to end on its final added line before it is applied.
+          # The patch is a zero-context diff, so git apply needs --unidiff-zero. It must NOT be
+          # given --recount: recount re-reads the new-file hunk against the old file and refuses it
+          # ("new file depends on old contents"). A blank line after the last hunk is counted as
+          # one more line, so the file is trimmed to end on its final added line first.
           python3 -c 'p="dev/ship.patch"; s=open(p,encoding="utf-8").read().rstrip("\n")+"\n"; open(p,"w",encoding="utf-8").write(s)'
-          git apply --unidiff-zero --recount --whitespace=nowarn dev/ship.patch
+          git apply --unidiff-zero --whitespace=nowarn dev/ship.patch
           rm -f dev/ship.patch
           git add -A
           git commit -m "FamTM 1.5.0: hand the birthdays to UJournal through a read-only provider"
