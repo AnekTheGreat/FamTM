@@ -1,0 +1,27 @@
+name: Apply the 1.6.1 change
+
+# One-shot: runs dev/ship.py, commits what it changes and pushes. Both files delete themselves.
+on:
+  push:
+    branches: [main]
+    paths: ['dev/ship.py']
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply, commit and push
+        run: |
+          set -e
+          git config user.name "AnekTheGreat"
+          git config user.email "166177289+AnekTheGreat@users.noreply.github.com"
+          python3 dev/ship.py
+          rm -f dev/ship.py .github/workflows/apply-161.yml
+          git add -A
+          git commit -m "FamTM 1.6.1: the page says its version, and it is read from main"
+          git push origin HEAD:main
