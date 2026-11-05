@@ -17,6 +17,9 @@ jobs:
           set -e
           git config user.name "AnekTheGreat"
           git config user.email "166177289+AnekTheGreat@users.noreply.github.com"
+          # git apply counts every line of a hunk, and a blank line after the last one is counted
+          # too - so the file is trimmed to end on its final added line before it is applied.
+          python3 -c 'p="dev/ship.patch"; s=open(p,encoding="utf-8").read().rstrip("\n")+"\n"; open(p,"w",encoding="utf-8").write(s)'
           git apply --unidiff-zero --recount --whitespace=nowarn dev/ship.patch
           rm -f dev/ship.patch
           git add -A
