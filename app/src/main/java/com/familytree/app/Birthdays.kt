@@ -36,6 +36,11 @@ object Birthdays {
     // the page's list: [{"n":name,"m":month,"d":day,"y":year}], year 0 when it was never given
     fun save(c: Context, json: String) = prefs(c).edit().putString(KEY_LIST, json).apply()
 
+    // The same list, for the journal beside this app: BirthdayProvider answers a query with it and
+    // nothing else. It is the list the reminders already keep - a name, a month, a day and the year
+    // when there is one - so sharing it adds no new information to the phone.
+    fun list(c: Context): String = prefs(c).getString(KEY_LIST, "[]") ?: "[]"
+
     fun set(c: Context, on: Boolean) {
         prefs(c).edit().putBoolean(KEY_ON, on).apply()
         if (on) schedule(c) else WorkManager.getInstance(c).cancelUniqueWork(UNIQUE)

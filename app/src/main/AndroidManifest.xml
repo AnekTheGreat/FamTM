@@ -17,6 +17,13 @@
              handed a one-off writable URI through this provider: no camera and no storage permission
              is needed for that. No CAMERA permission is declared on purpose - declaring it would make
              the camera intent need a runtime grant. -->
+        <!-- The birthdays, for the journal beside this app: read-only, and only the list the
+             reminder job already keeps. Exported because UJournal is a separate app under its own
+             signature; no write can reach it. -->
+        <provider
+            android:name=".BirthdayProvider"
+            android:authorities="${applicationId}.birthdays"
+            android:exported="true" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

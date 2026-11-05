@@ -9,6 +9,14 @@ migrated when it loads, so your data carries over from version to version. As a
 fallback you can always **Backup (JSON)** and **Restore from backup** — a backup made
 in any version re-imports into any other.
 
+
+## 2026-11-05 — v1.5.0: the birthdays are shared with UJournal
+
+- **UJournal can now see the birthdays.** If UJournal is installed, its Plans tab offers to bring over the name and the day of everyone alive, and marks each one on its calendar every year. One tap, and nobody is typed in twice.
+- **It is the same short list the reminders already keep** — a name, a month, a day and the year when one was given. No photo, no note and no date of death is in it, and the family tree itself is not reachable from outside.
+- **Nothing is given away without the app being asked.** The list is handed over only when another app asks for it, and only ever read: no app can add, change or remove a person through it.
+- **Nothing here changes.** The tree, the reminders and the people are exactly as they were; this build only adds the way the list is handed over.
+
 ## 2026-10-26 — v1.0.3: A HEIC photo is a photo like any other
 
 This one is **both**: the page carries **v1.0.3** and arrives over the air as usual, but the picture is now
