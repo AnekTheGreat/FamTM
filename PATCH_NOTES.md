@@ -11,6 +11,24 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.3: a birthday written as 7/4 counts too
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.3** now.
+
+### Fixed
+- **The birthday list dropped dates that were not zero-padded.** The function that reads a born date
+  wanted the exact shape the date field writes, `1950-07-04` or `--07-04`, and returned nothing for
+  `1950-7-4`, `7/4` or a date from a hand-made backup. The list handed to UJournal is built from the
+  same function, so UJournal was told there were no birthdays while Birthdays in this app showed a
+  full list. One- or two-digit months and days are read now, with a dash or a slash, with or without
+  a year.
+- **A year or a month without a day is still skipped**, because there is no day to come round again.
+  Birthdays already says so under the list.
+
+### Unchanged
+- The provider, the reminders and the family tree are untouched; only the reader of a date changed.
+
+
 ## 2026-11-06 — v1.6.2: UJournal's birthdays show up here, and both apps name each other
 
 An app change: it needs the new APK. The page that came with it carries **v1.6.2**.
