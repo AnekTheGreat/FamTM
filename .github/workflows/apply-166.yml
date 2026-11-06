@@ -1,0 +1,81 @@
+name: Apply 1.6.6
+
+# One-shot: applies dev/patch-166.py, proves it is idempotent and that the app list and the tab
+# strip are what it says, and commits it. Page only - no APK, so this ships over the air.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-166
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply the patch, twice
+        run: |
+          python3 dev/patch-166.py
+          A="$(git diff | sha1sum)"
+          python3 dev/patch-166.py
+          B="$(git diff | sha1sum)"
+          if [ "$A" != "$B" ]; then echo "::error::a second run changed something"; exit 1; fi
+          echo "idempotent: the same diff after a second run"
+          python3 dev/patch-166.py --check
+
+      - name: Check what it wrote
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          page = open('app/src/main/assets/index.html', encoding='utf-8').read()
+          probes = [
+              ("const VER='1.6.6'", 'the page does not say 1.6.6'),
+              ('"v":"1.6.6"', "What's New has no 1.6.6 entry"),
+              ('app.ujournal', 'UJournal has no store page'),
+              ('com.SideCut.myapp', 'SideCut is missing from the list'),
+              ('com.CompassEDC.myapp', 'MeasureT is missing from the list'),
+              ('AnekTheGreat/My-Hub', 'My Hub is missing from the list'),
+              ('com.FamTM.app', 'this app has no store page'),
+              ('prev?prev.scrollLeft:0', 'the tab strip still forgets where it was'),
+              ('r.right>b.right', 'the picked tab is not brought into view'),
+          ]
+          for probe, why in probes:
+              if probe not in page:
+                  sys.exit(why)
+          apps = re.search(r'const APPS=\[(.*?)\];', page, re.S).group(1)
+          count = apps.count("['")
+          if count != 5:
+              sys.exit('the list has ' + str(count) + ' apps, not 5')
+          if '## 2026-11-06 — v1.6.6' not in open('PATCH_NOTES.md', encoding='utf-8').read():
+              sys.exit('PATCH_NOTES has no 1.6.6 entry')
+          block = re.search(r'<script id="upd" type="application/json">(.*?)</script>', page, re.S)
+          entries = json.loads(block.group(1))
+          if entries[0]['v'] != '1.6.6':
+              sys.exit('the newest note is ' + str(entries[0]['v']))
+          print('1.6.6: ' + str(count) + ' apps, changelog parses (' + str(len(entries)) + ' entries)')
+          PY
+          node - <<'JS'
+          const fs = require('fs');
+          const html = fs.readFileSync('app/src/main/assets/index.html', 'utf8');
+          const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)];
+          for (const b of blocks) new Function(b[1]);
+          console.log('page: ' + blocks.length + ' script block(s) parse');
+          JS
+
+      - name: Commit and push
+        run: |
+          git config user.name "AnekTheGreat"
+          git config user.email "anekthegreat@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "already applied - nothing to commit"
+            exit 0
+          fi
+          git commit -m "FamTM 1.6.6: every app in the list, and a tab row that holds its place"
+          git push
