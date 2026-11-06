@@ -1,0 +1,79 @@
+name: Apply 1.6.3
+
+# One-shot: applies dev/patch-163.py, checks it, commits it. Page only - the app reads the page from
+# main, so the commit is the release.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-163
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply the patch
+        run: python3 dev/patch-163.py
+
+      - name: Check what it wrote
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          page = open('app/src/main/assets/index.html', encoding='utf-8').read()
+          if "const VER='1.6.3'" not in page:
+              sys.exit('the page still says 1.6.2')
+          if '{"v":"1.6.3"' not in page:
+              sys.exit('What is New has no 1.6.3 entry')
+          if '[0-9]{1,2})[-/]([0-9]{1,2})' not in page:
+              sys.exit('bdOf still wants a padded date')
+          if '## 2026-11-06 — v1.6.3' not in open('PATCH_NOTES.md', encoding='utf-8').read():
+              sys.exit('PATCH_NOTES has no 1.6.3 entry')
+          block = re.search(r'<script id="upd" type="application/json">(.*?)</script>', page, re.S)
+          if not block:
+              sys.exit('the changelog block is gone')
+          json.loads(block.group(1))
+          print('1.6.3: changelog parses, bdOf reads 7/4')
+          PY
+          node - <<'JS'
+          const fs = require('fs');
+          const html = fs.readFileSync('app/src/main/assets/index.html', 'utf8');
+          const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)];
+          if (!blocks.length) throw new Error('no script blocks found');
+          for (const b of blocks) new Function(b[1]);
+          console.log('page: ' + blocks.length + ' script block(s) parse');
+
+          const bdOf = p => {
+            const m = /^(?:([0-9]{4})[-/]|--)?([0-9]{1,2})[-/]([0-9]{1,2})$/.exec(String(p.birth).trim());
+            if (!m) return null;
+            const mo = +m[2], d = +m[3];
+            return mo >= 1 && mo <= 12 && d >= 1 && d <= 31 ? { mo, d, y: m[1] ? +m[1] : 0 } : null;
+          };
+          const want = { '1950-07-04': '7-4', '1950-7-4': '7-4', '--07-04': '7-4', '--7-4': '7-4', '7/4': '7-4' };
+          for (const [input, expect] of Object.entries(want)) {
+            const got = bdOf({ birth: input });
+            if (!got || got.mo + '-' + got.d !== expect) throw new Error(input + ' is not read as ' + expect);
+          }
+          for (const input of ['1950', '1950-07', '', 'nonsense']) {
+            if (bdOf({ birth: input })) throw new Error(input + ' should have no day');
+          }
+          console.log('bdOf: unpadded dates read, year-only still skipped');
+          JS
+
+      - name: Commit and push
+        run: |
+          git config user.name "AnekTheGreat"
+          git config user.email "anekthegreat@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "already applied - nothing to commit"
+            exit 0
+          fi
+          git commit -m "FamTM 1.6.3: a birthday written as 7/4 is read as a birthday"
+          git push
