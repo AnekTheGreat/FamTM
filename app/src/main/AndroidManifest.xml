@@ -3,6 +3,14 @@
     <!-- A birthday reminder is a notification; on Android 13 and later that is granted at runtime, when
          reminders are turned on from the Birthdays page. Nothing is asked for at install time. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 11 and later hide one app from another unless the first names it, and a hidden app
+         cannot be reached at all - not its package, not its provider. This names the journal, so the
+         birthdays kept there can be read the same way UJournal reads these. Only that one provider is
+         named, and it is read-only. -->
+    <queries>
+        <package android:name="app.ujournal" />
+        <provider android:authorities="app.ujournal.birthdays" />
+    </queries>
     <application android:label="Family Tree" android:icon="@drawable/ic_launcher"
         android:theme="@style/Theme.App" android:allowBackup="true" android:supportsRtl="true">
         <activity android:name=".MainActivity" android:exported="true"

@@ -169,6 +169,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // The Birthdays page asks for the ones the journal keeps. It is a read of UJournal's own
+        // read-only provider; nothing is written back through it.
+        @JavascriptInterface
+        fun journalBirthdays(): String = JournalBirthdays.list(this@MainActivity)
+
         // the ⟳ button in the app: check for an OTA update and reload straight away
         @JavascriptInterface
         fun refresh() {

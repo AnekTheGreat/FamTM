@@ -27,7 +27,7 @@ android {
         targetSdk = 36
         // 1.4 (5) installs over 1.3 (4) as an ordinary update, so the family on the phone is kept.
         versionCode = (System.getenv("VERSION_CODE") ?: "5").toInt()
-        versionName = System.getenv("VERSION_NAME") ?: "1.6.1"
+        versionName = System.getenv("VERSION_NAME") ?: "1.6.2"
     }
 
     signingConfigs {

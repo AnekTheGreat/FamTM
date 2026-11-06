@@ -11,6 +11,30 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.2: UJournal's birthdays show up here, and both apps name each other
+
+An app change: it needs the new APK. The page that came with it carries **v1.6.2**.
+
+### Fixed
+- **UJournal could not read this app's list, and said so as "FamTM is not installed".** Android 11 and
+  later hide one app from another unless the first names it, and neither app named the other: the
+  query for this app's birthdays was refused before it reached `BirthdayProvider`. UJournal 1.9.2
+  declares this app; this release declares UJournal, so each can see the other's list.
+- **The list went over only when reminders were on.** The page handed its birthdays to the phone on
+  every family change, but on launch only if reminders had been turned on, so a journal opened on a
+  phone that never turned reminders on found nothing. It is handed over on every launch now.
+
+### Added
+- **Birthdays → From UJournal.** The birthdays UJournal keeps, with the day each comes round and the
+  year when it was given, read from the journal's own read-only provider. They are shown, not copied:
+  nothing is added to the family, the tree is untouched, and the reminders still fire from this app's
+  own list.
+
+### Unchanged
+- `BirthdayProvider` still answers with names and days only, still refuses every write, and the
+  family tree, the reminders and the people are exactly as they were.
+
+
 ## 2026-11-05 — v1.6.1: the notes catch up, a backup can be added, and the page follows `main`
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.1** now.
