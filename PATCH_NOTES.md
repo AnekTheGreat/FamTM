@@ -11,6 +11,20 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.4: every born date the page can show is a birthday it counts
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.4** now.
+
+### Fixed
+- **A born date shown on a card could be missing from Birthdays.** The list is built by `bdOf`, which
+  had its own date pattern, while the Born box writes through the forgiving `normDate`. A date that
+  arrived any other way - `4 Jul 1950`, `7/4`, `21/7`, from a note, from an older backup - was
+  displayed on the person's card and skipped by the list, so Birthdays could be empty, and UJournal
+  was handed nothing to find.
+- **One reader now.** `bdOf` runs the stored date through `normDate` first: what the page can show,
+  it counts. A year on its own, or a month with no day, still has no day to keep.
+
+
 ## 2026-11-06 — v1.6.3: a birthday written as 7/4 counts too
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.3** now.
