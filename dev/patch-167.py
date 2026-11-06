@@ -178,7 +178,9 @@ else:
 
 # ---- notes ---------------------------------------------------------------------------------
 notes = NOTES.read_text(encoding="utf-8")
-if f"## {VERSION}" not in notes:
+# The heading here is dated, so the check has to look for the whole of it: a guard that only looked
+# for the version would miss `## 2026-11-06 — v1.6.7` and add the section a second time.
+if f"## 2026-11-06 — v{VERSION}" not in notes:
     section = (
         f"## 2026-11-06 — v{VERSION}\n\n"
         "**A welcome, a tour, and a Guide under the gear.**\n\n"
