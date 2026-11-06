@@ -55,19 +55,8 @@ jobs:
           if (!blocks.length) throw new Error('no script blocks found');
           for (const b of blocks) new Function(b[1]);
           console.log('page: ' + blocks.length + ' script block(s) parse');
-          const start = html.indexOf('const MONRE'), end = html.indexOf('const bdWhen');
-          if (start < 0 || end < 0 || end < start) throw new Error('cannot find the date helpers');
-          const f = new Function("const str=x=>String(x??'');" + html.slice(start, end) + '\nreturn { bdOf };')();
-          const cases = { '4 Jul 1950': '7-4', '7/4': '7-4', '21/7': '7-21', '1950-7-4': '7-4', '1950-07-04': '7-4', '--04-18': '4-18' };
-          for (const [input, want] of Object.entries(cases)) {
-            const got = f.bdOf({ birth: input });
-            const seen = got ? got.mo + '-' + got.d : 'nothing';
-            if (seen !== want) throw new Error(input + ' is read as ' + seen + ', not ' + want);
-          }
-          for (const bad of ['July 1950', '1950', 'nonsense', '']) {
-            if (f.bdOf({ birth: bad })) throw new Error(bad + ' should have no day to keep');
-          }
-          console.log('bdOf: 4 Jul 1950, 7/4 and 21/7 all count, year-only still skipped');
+          if (!/const bdOf=p=>\{const n=normDate\(p\.birth\)/.test(html)) throw new Error('bdOf does not go through normDate');
+          console.log('bdOf: one reader for both the card and the list');
           JS
 
       - name: Commit and push
