@@ -11,6 +11,14 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.6
+
+Other apps is the whole family now - UJournal, SideCut, MeasureT and My Hub beside this one, each
+with the page it installs from. The row of tabs also keeps the place you scrolled it to: picking a
+tab further along used to snap the row back to the first tab, and now it stays put and brings the
+tab you picked into view. Page only, so it arrives over the air.
+
+
 ## 2026-11-06 — v1.6.5
 
 Settings is one panel with tabs — Family, Transfer, Updates, Support, Other apps — and a newer screen
