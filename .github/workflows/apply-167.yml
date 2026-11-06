@@ -1,0 +1,88 @@
+name: Apply 1.6.7
+
+# One-shot: applies dev/patch-167.py, proves it is idempotent and that the welcome, the tour and the
+# Guide are what it says, and commits it. Page only - no APK, so this ships over the air.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-167
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply the patch, twice
+        run: |
+          python3 dev/patch-167.py
+          A="$(git diff | sha1sum)"
+          python3 dev/patch-167.py
+          B="$(git diff | sha1sum)"
+          if [ "$A" != "$B" ]; then echo "::error::a second run changed something"; exit 1; fi
+          echo "idempotent: the same diff after a second run"
+          python3 dev/patch-167.py --check
+
+      - name: Check what it wrote
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          page = open('app/src/main/assets/index.html', encoding='utf-8').read()
+          probes = [
+              ("const VER='1.6.7'", 'the page does not say 1.6.7'),
+              ('"v":"1.6.7"', "What's New has no 1.6.7 entry"),
+              ("['guide','Guide']]", 'there is no Guide tab'),
+              ('data-act="hello">Show the welcome again', 'the guide cannot bring the welcome back'),
+              ('const welcome=', 'there is no welcome'),
+              ('const tourStep=', 'there is no tour'),
+              ('const TOUR=[', 'the tour has no steps'),
+              ('const GUIDE=[', 'the guide has no list'),
+              ('if(!helloSeen())welcome();', 'a first launch does not open on the welcome'),
+              ('const helloSeen=', 'the welcome is not remembered'),
+              ('data-act="tourskip"', 'the tour cannot be skipped'),
+          ]
+          for probe, why in probes:
+              if probe not in page:
+                  sys.exit(why)
+          # Five steps, and the welcome has to come before the notes, or a new phone meets two popups.
+          tour = page[page.index('const TOUR=['):]
+          tour = tour[:tour.index('];')]
+          if tour.count('{t:') != 5:
+              sys.exit('the tour has ' + str(tour.count('{t:')) + ' steps, not 5')
+          boot = page[page.index('if(!helloSeen())welcome();'):]
+          boot = boot[:boot.index('\n')]
+          if boot.index('welcome()') > boot.index('whatsNew()'):
+              sys.exit("the welcome does not come before What's New")
+          if '## 2026-11-06 — v1.6.7' not in open('PATCH_NOTES.md', encoding='utf-8').read():
+              sys.exit('PATCH_NOTES has no 1.6.7 entry')
+          block = re.search(r'<script id="upd" type="application/json">(.*?)</script>', page, re.S)
+          entries = json.loads(block.group(1))
+          if entries[0]['v'] != '1.6.7':
+              sys.exit('the newest note is ' + str(entries[0]['v']))
+          print('1.6.7: welcome, a 5-step tour, a Guide tab, changelog parses (' + str(len(entries)) + ' entries)')
+          PY
+          node - <<'JS'
+          const fs = require('fs');
+          const html = fs.readFileSync('app/src/main/assets/index.html', 'utf8');
+          const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)];
+          for (const b of blocks) new Function(b[1]);
+          console.log('page: ' + blocks.length + ' script block(s) parse');
+          JS
+
+      - name: Commit and push
+        run: |
+          git config user.name "AnekTheGreat"
+          git config user.email "anekthegreat@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "already applied - nothing to commit"
+            exit 0
+          fi
+          git commit -m "FamTM 1.6.7: a welcome, a tour, and a Guide under the gear"
+          git push
