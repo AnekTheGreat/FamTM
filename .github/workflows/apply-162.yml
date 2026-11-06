@@ -1,0 +1,85 @@
+name: Apply 1.6.2
+
+# One-shot: applies dev/patch-162.py, checks what it wrote, and commits it.
+# The release itself is cut afterwards by release.yml with version 1.6.2.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-162
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply the patch
+        run: python3 dev/patch-162.py
+
+      - name: Check what it wrote
+        run: |
+          python3 - <<'PY'
+          import re, sys, xml.etree.ElementTree as ET
+
+          x = open('app/src/main/AndroidManifest.xml', encoding='utf-8').read()
+          ET.fromstring(x.replace('${applicationId}', 'com.FamTM.app'))
+          m = re.search(r'<queries>(.*?)</queries>', x, re.S)
+          if not m:
+              sys.exit('no <queries> in the manifest')
+          for need in ('app.ujournal', 'app.ujournal.birthdays'):
+              if need not in m.group(1):
+                  sys.exit('<queries> does not name %s' % need)
+          if x.index('<queries>') > x.index('<application'):
+              sys.exit('<queries> must sit before <application>')
+          print('manifest: valid XML, <queries> names UJournal')
+
+          a = open('app/src/main/java/com/familytree/app/MainActivity.kt', encoding='utf-8').read()
+          if 'fun journalBirthdays(): String' not in a:
+              sys.exit('the bridge has no journalBirthdays')
+          j = open('app/src/main/java/com/familytree/app/JournalBirthdays.kt', encoding='utf-8').read()
+          for need in ('object JournalBirthdays', 'content://app.ujournal.birthdays/list', 'fun list(ctx: Context)'):
+              if need not in j:
+                  sys.exit('JournalBirthdays.kt is missing %s' % need)
+
+          page = open('app/src/main/assets/index.html', encoding='utf-8').read()
+          if "const VER='1.6.2'" not in page:
+              sys.exit('the page does not say 1.6.2')
+          if 'jdBlock()+' not in page:
+              sys.exit('Birthdays does not draw the journal block')
+          if 'index();render();bdPush();' not in page:
+              sys.exit('the list is still only handed over when reminders are on')
+          if '{"v":"1.6.2"' not in page:
+              sys.exit('the page has no What\u2019s New entry for 1.6.2')
+          print('version 1.6.2 in the page, its notes, and the bridge')
+          PY
+          node - <<'JS'
+          const fs = require('fs');
+          const html = fs.readFileSync('app/src/main/assets/index.html', 'utf8');
+          const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)];
+          if (!blocks.length) throw new Error('no script blocks found');
+          for (const b of blocks) new Function(b[1]);   // parses, does not run
+          console.log('page: ' + blocks.length + ' script block(s) parse');
+          const upd = html.match(/<script id="upd" type="application\/json">([\s\S]*?)<\/script>/);
+          if (!upd) throw new Error('no What\u2019s New list');
+          const list = JSON.parse(upd[1]);
+          if (!list.length || list[0].v !== '1.6.2') throw new Error('the newest entry is not 1.6.2');
+          console.log('notes: ' + list.length + ' entries, newest ' + list[0].v);
+          JS
+
+      - name: Commit and push
+        run: |
+          git config user.name "AnekTheGreat"
+          git config user.email "anekthegreat@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "already applied - nothing to commit"
+            exit 0
+          fi
+          git commit -m "FamTM 1.6.2: UJournal's birthdays show up here, and each app names the other"
+          git push
