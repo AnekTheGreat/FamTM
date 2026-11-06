@@ -1,0 +1,83 @@
+name: Apply 1.6.4
+
+# One-shot: applies dev/patch-164.py, checks it, commits it. Page only - the app reads the page from
+# main, so the commit is the release.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-164
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply the patch, twice
+        run: |
+          python3 dev/patch-164.py
+          A="$(git diff | sha1sum)"
+          python3 dev/patch-164.py
+          B="$(git diff | sha1sum)"
+          if [ "$A" != "$B" ]; then echo "::error::a second run changed something"; exit 1; fi
+          echo "idempotent: the same diff after a second run"
+          python3 dev/patch-164.py --check
+
+      - name: Check what it wrote
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          page = open('app/src/main/assets/index.html', encoding='utf-8').read()
+          if "const VER='1.6.4'" not in page:
+              sys.exit('the page still says 1.6.3')
+          if '"v":"1.6.4"' not in page:
+              sys.exit('What is New has no 1.6.4 entry')
+          if 'const n=normDate(p.birth)' not in page:
+              sys.exit('bdOf still has a date pattern of its own')
+          if '## 2026-11-06 — v1.6.4' not in open('PATCH_NOTES.md', encoding='utf-8').read():
+              sys.exit('PATCH_NOTES has no 1.6.4 entry')
+          block = re.search(r'<script id="upd" type="application/json">(.*?)</script>', page, re.S)
+          if not block:
+              sys.exit('the changelog block is gone')
+          json.loads(block.group(1))
+          print('1.6.4: changelog parses, bdOf reads through normDate')
+          PY
+          node - <<'JS'
+          const fs = require('fs');
+          const html = fs.readFileSync('app/src/main/assets/index.html', 'utf8');
+          const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)];
+          if (!blocks.length) throw new Error('no script blocks found');
+          for (const b of blocks) new Function(b[1]);
+          console.log('page: ' + blocks.length + ' script block(s) parse');
+          const start = html.indexOf('const MONRE'), end = html.indexOf('const bdWhen');
+          if (start < 0 || end < 0 || end < start) throw new Error('cannot find the date helpers');
+          const f = new Function("const str=x=>String(x??'');" + html.slice(start, end) + '\nreturn { bdOf };')();
+          const cases = { '4 Jul 1950': '7-4', '7/4': '7-4', '21/7': '7-21', '1950-7-4': '7-4', '1950-07-04': '7-4', '--04-18': '4-18' };
+          for (const [input, want] of Object.entries(cases)) {
+            const got = f.bdOf({ birth: input });
+            const seen = got ? got.mo + '-' + got.d : 'nothing';
+            if (seen !== want) throw new Error(input + ' is read as ' + seen + ', not ' + want);
+          }
+          for (const bad of ['July 1950', '1950', 'nonsense', '']) {
+            if (f.bdOf({ birth: bad })) throw new Error(bad + ' should have no day to keep');
+          }
+          console.log('bdOf: 4 Jul 1950, 7/4 and 21/7 all count, year-only still skipped');
+          JS
+
+      - name: Commit and push
+        run: |
+          git config user.name "AnekTheGreat"
+          git config user.email "anekthegreat@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "already applied - nothing to commit"
+            exit 0
+          fi
+          git commit -m "FamTM 1.6.4: the birthday list reads a born date the same way the Born box does"
+          git push
