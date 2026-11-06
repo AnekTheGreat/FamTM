@@ -1,0 +1,81 @@
+name: Apply 1.6.5
+
+# One-shot: applies dev/patch-165.py, proves it is idempotent and that the page and the shell both
+# carry 1.6.5, and commits it. main.yml then compiles the shell on the push.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-165
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply the patch, twice
+        run: |
+          python3 dev/patch-165.py
+          A="$(git diff | sha1sum)"
+          python3 dev/patch-165.py
+          B="$(git diff | sha1sum)"
+          if [ "$A" != "$B" ]; then echo "::error::a second run changed something"; exit 1; fi
+          echo "idempotent: the same diff after a second run"
+          python3 dev/patch-165.py --check
+
+      - name: Check what it wrote
+        run: |
+          python3 - <<'PY'
+          import json, re, sys
+          page = open('app/src/main/assets/index.html', encoding='utf-8').read()
+          kt = open('app/src/main/java/com/familytree/app/MainActivity.kt', encoding='utf-8').read()
+          probes = [
+              ("const VER='1.6.5'", page, 'the page does not say 1.6.5'),
+              ('"v":"1.6.5"', page, "What's New has no 1.6.5 entry"),
+              ('const TABS=', page, 'the settings tabs are not defined'),
+              ('data-act="mtab"', page, 'the settings panel is not tabbed'),
+              ('appsopen:()=>openApp(d.url)', page, "the panel's buttons are not wired"),
+              ('Updated to the newest screen', kt, 'the launch check still waits for a tap'),
+              ('fun open(u: String)', kt, 'the page cannot open a link'),
+          ]
+          for probe, where, why in probes:
+              if probe not in where:
+                  sys.exit(why)
+          if '## 2026-11-06 — v1.6.5' not in open('PATCH_NOTES.md', encoding='utf-8').read():
+              sys.exit('PATCH_NOTES has no 1.6.5 entry')
+          block = re.search(r'<script id="upd" type="application/json">(.*?)</script>', page, re.S)
+          if not block:
+              sys.exit('the changelog block is gone')
+          entries = json.loads(block.group(1))
+          if entries[0]['v'] != '1.6.5':
+              sys.exit('the newest note is ' + str(entries[0]['v']))
+          print('1.6.5: changelog parses (' + str(len(entries)) + ' entries), tabs wired, launch check applies')
+          PY
+          node - <<'JS'
+          const fs = require('fs');
+          const html = fs.readFileSync('app/src/main/assets/index.html', 'utf8');
+          const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)];
+          if (!blocks.length) throw new Error('no script blocks found');
+          for (const b of blocks) new Function(b[1]);
+          console.log('page: ' + blocks.length + ' script block(s) parse');
+          if (!/function menu\(sec\)\{/.test(html)) throw new Error('menu is not the tabbed panel');
+          console.log('menu: the tabbed panel is in place');
+          JS
+
+      - name: Commit and push
+        run: |
+          git config user.name "AnekTheGreat"
+          git config user.email "anekthegreat@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "already applied - nothing to commit"
+            exit 0
+          fi
+          git commit -m "FamTM 1.6.5: Settings is one panel with tabs, and the screen keeps itself current"
+          git push
