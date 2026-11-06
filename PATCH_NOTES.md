@@ -11,6 +11,16 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.8
+
+**My Hub is off the Other apps list.**
+
+- Other apps lists the three apps beside this one that a tap can install: UJournal,
+  SideCut and MeasureT. My Hub is a repository, not a store listing, so a tap on it left the
+  app for a page that could not install anything.
+- The Guide's own line for Other apps says the same three.
+- This one is in the page: it arrives the next time the app opens, with nothing to install.
+
 ## 2026-11-06 — v1.6.7
 
 **A welcome, a tour, and a Guide under the gear.**
