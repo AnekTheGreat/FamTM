@@ -11,6 +11,18 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.7
+
+**A welcome, a tour, and a Guide under the gear.**
+
+- A first launch opens on a welcome: one line on what the tree is for, and two buttons,
+  Show me around and Skip. Shown once, marked seen when it appears rather than when it closes.
+- The tour is five steps - the tabs, adding someone, the tree's gestures, the backup, the
+  updates - with Next, Back and Skip. It draws in the app's own dialog, so it looks like the
+  rest of the app and needs no new chrome.
+- Settings gains a Guide tab: the same tour, the welcome, and every feature in one list.
+- What's New waits behind the welcome, so a new phone is not met by two popups at once.
+
 ## 2026-11-06 — v1.6.6
 
 Other apps is the whole family now - UJournal, SideCut, MeasureT and My Hub beside this one, each
