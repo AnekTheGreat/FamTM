@@ -11,6 +11,11 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-06 — v1.6.5
+
+Settings is one panel with tabs — Family, Transfer, Updates, Support, Other apps — and a newer screen
+is drawn as soon as the app opens instead of waiting for the refresh button. Nothing reloads while a
+card or a note is open, so a half-typed person is never lost.
 ## 2026-11-06 — v1.6.4: every born date the page can show is a birthday it counts
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.4** now.

@@ -466,7 +466,27 @@ class MainActivity : AppCompatActivity() {
         main.postDelayed(check, 9000L)
     }
 
+    /**
+     * The check that runs on every launch. A page update is a file, not an install: there is nothing
+     * to consent to, so it is put in place and drawn straight away instead of waiting for a tap on
+     * the refresh button.
+     *
+     * The one exception is a screen with a dialog open - a half-typed person or note is worth more
+     * than the second it saves. The file is already stored by then, so the next launch draws it.
+     */
     private fun checkOta() {
-        Thread { if (otaUpdate() == "updated") runOnUiThread { toast("Update ready – tap ⟳ to apply") } }.start()
+        Thread {
+            if (otaUpdate() != "updated") return@Thread
+            runOnUiThread {
+                web.evaluateJavascript("(document.querySelector('dialog[open]')?'y':'n')") { a ->
+                    if (a != null && a.contains("y")) {
+                        toast("Updated - it will be on screen next time")
+                    } else {
+                        web.loadUrl("$HOST/ota/index.html")
+                        toast("Updated to the newest screen")
+                    }
+                }
+            }
+        }.start()
     }
 }
