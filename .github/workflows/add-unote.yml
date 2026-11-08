@@ -1,0 +1,44 @@
+name: Add UNote to the Other apps list
+
+# Runs dev/add-unote.py once and commits what it changes. The script is
+# idempotent, so a second run finds the card already there and does nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Already there?
+        id: check
+        run: |
+          if python3 dev/add-unote.py --check > /dev/null 2>&1; then
+            echo "pending=no" >> "$GITHUB_OUTPUT"
+            echo '::notice::the card is already in the list'
+          else
+            echo "pending=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Add it
+        if: steps.check.outputs.pending == 'yes'
+        run: |
+          set -euo pipefail
+          python3 dev/add-unote.py
+          python3 dev/add-unote.py --check
+
+      - name: Commit
+        if: steps.check.outputs.pending == 'yes'
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then echo 'nothing to commit'; exit 0; fi
+          git config user.name 'UNote patch'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'UNote joins the Other apps list'
+          git push
