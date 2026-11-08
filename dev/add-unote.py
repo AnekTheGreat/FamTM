@@ -8,7 +8,7 @@ import io
 import sys
 
 PAGE = 'app/src/main/assets/index.html'
-URL = 'https://site-e28e804444934263a1f0838974d59f45.freebuff.page/'
+URL = 'https://anekthegreat.github.io/UNote/'
 lines = io.open(PAGE, encoding='utf-8').read().split('\n')
 
 if any("'UNote'" in l for l in lines):
