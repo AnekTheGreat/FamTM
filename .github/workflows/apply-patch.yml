@@ -1,0 +1,44 @@
+name: Apply a page patch
+
+# A push made with the workflow token does not start other workflows, so this one only
+# applies the patch and commits it. Run release.yml afterwards if the APK needs rebuilding.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version the patch produces, e.g. 1.6.9
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-patch
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply the patch twice, and insist the second run changes nothing
+        run: |
+          V="${{ inputs.version }}"
+          N=$(printf '%s' "$V" | tr -d '.')
+          test -f "dev/patch-$N.py" || { echo "dev/patch-$N.py is not here"; exit 1; }
+          python3 "dev/patch-$N.py"
+          python3 "dev/patch-$N.py" --check
+
+      - name: Commit it
+        run: |
+          V="${{ inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "Release $V"
+          git push
