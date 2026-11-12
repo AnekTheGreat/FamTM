@@ -3,102 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FamTM (Family Tree) — Privacy Policy</title>
-<meta name="description" content="Privacy policy for the FamTM / Family Tree Android app: your tree, notes and photos stay on your phone.">
+<title>FamTM — the family tree in your pocket</title>
+<meta name="description" content="FamTM is an Android family tree: people, birthdays, ages, portraits and notes, kept on your phone. No account, no ads, works offline.">
 <style>
-  :root { --ink:#171412; --muted:#665e57; --paper:#faf7f2; --rule:#e5ddd2; --accent:#5b3a1e; --card:#fffdf9; }
-  @media (prefers-color-scheme: dark) { :root { --ink:#ece7df; --muted:#a69d92; --paper:#15120f; --rule:#332c24; --accent:#dcae7d; --card:#1d1915; } }
-  * { box-sizing:border-box; }
-  html { -webkit-text-size-adjust:100%; }
-  body { margin:0; padding:3rem 1.25rem 5rem; background:var(--paper); color:var(--ink); font:17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-  main { max-width:44rem; margin:0 auto; }
-  header { border-bottom:1px solid var(--rule); padding-bottom:1.25rem; margin-bottom:2rem; }
-  h1 { font-size:1.9rem; line-height:1.2; margin:0 0 .5rem; letter-spacing:-.01em; font-family:Georgia,"Times New Roman",serif; }
-  h2 { font-size:1.15rem; margin:2.5rem 0 .6rem; }
-  h3 { font-size:1rem; margin:1.5rem 0 .3rem; }
-  p, li { margin:0 0 .85rem; }
-  ul { padding-left:1.25rem; }
-  li { margin-bottom:.5rem; }
-  .sub { color:var(--muted); font-size:.95rem; margin:0; }
-  .lede { background:var(--card); border:1px solid var(--rule); border-radius:10px; padding:1.1rem 1.25rem; margin:0 0 2rem; }
-  .lede p:last-child { margin-bottom:0; }
-  a { color:var(--accent); }
-  code { font-size:.9em; background:var(--card); border:1px solid var(--rule); border-radius:4px; padding:.05em .3em; }
-  footer { margin-top:3rem; padding-top:1.25rem; border-top:1px solid var(--rule); color:var(--muted); font-size:.9rem; }
+:root{--ink:#1a1410;--muted:#6b6058;--paper:#faf7f2;--card:#fffdf9;--rule:#e6ded2;--accent:#6b4423;--on:#fffaf3;--glow:#f3ebdf}
+@media(prefers-color-scheme:dark){:root{--ink:#efe8df;--muted:#a99e93;--paper:#141110;--card:#1d1915;--rule:#332b23;--accent:#e2b685;--on:#231708;--glow:#26201a}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.wrap{max-width:62rem;margin:0 auto;padding:0 1.25rem}
+header{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--rule)}
+header .wrap{display:flex;align-items:center;gap:.75rem;height:4.25rem}
+.mark{width:2.25rem;height:2.25rem;border-radius:.6rem;background:var(--accent);color:var(--on);display:grid;place-items:center;font-weight:800;flex:none}
+nav{margin-left:auto;display:flex;gap:1.35rem;font-size:.92rem}nav a{color:var(--muted)}nav a:hover{color:var(--ink);text-decoration:none}
+@media(max-width:34rem){nav{display:none}}
+.hero{padding:4.4rem 0 3.2rem}
+h1{font-size:clamp(2.1rem,5.2vw,3.35rem);line-height:1.08;letter-spacing:-.025em;margin:0 0 1rem;max-width:22ch}
+.lede{font-size:clamp(1.02rem,2.2vw,1.18rem);color:var(--muted);max-width:46ch;margin:0 0 1.8rem}
+.cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-bottom:1.5rem}
+.btn{display:inline-flex;align-items:center;padding:.8rem 1.25rem;border-radius:.7rem;font-weight:650;font-size:.95rem;border:1px solid var(--rule);background:var(--card);color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--on);border-color:transparent}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.facts{display:flex;flex-wrap:wrap;gap:.45rem;font-size:.83rem;color:var(--muted)}
+.fact{border:1px solid var(--rule);border-radius:99px;padding:.28rem .7rem;background:var(--card)}
+.tree{margin-top:2.6rem;border:1px solid var(--rule);border-radius:1.1rem;background:var(--glow);padding:1.1rem;display:grid;gap:.7rem;grid-template-columns:repeat(3,1fr)}
+@media(max-width:40rem){.tree{grid-template-columns:1fr}}
+.person{background:var(--card);border:1px solid var(--rule);border-radius:.8rem;padding:.8rem .9rem;display:flex;gap:.7rem;align-items:center}
+.face{width:2.1rem;height:2.1rem;border-radius:99px;background:var(--glow);border:1px solid var(--rule);display:grid;place-items:center;font-weight:700;color:var(--accent);flex:none}
+.person small{display:block;color:var(--muted);font-size:.78rem}
+section{padding:3.5rem 0;border-top:1px solid var(--rule)}
+h2{font-size:clamp(1.35rem,3vw,1.72rem);letter-spacing:-.02em;margin:0 0 .5rem}
+.sub{color:var(--muted);margin:0 0 2rem;max-width:52ch}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(3,1fr)}
+@media(max-width:52rem){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:34rem){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:.9rem;padding:1.15rem}
+.card h3{margin:0 0 .4rem;font-size:1.02rem;letter-spacing:-.01em}
+.card p{margin:0;color:var(--muted);font-size:.94rem}
+.strip{background:var(--card);border:1px solid var(--rule);border-radius:1rem;padding:1.5rem}
+.strip p{margin:0 0 .8rem;color:var(--muted);max-width:58ch}.strip p:last-child{margin-bottom:0}
+.strip b{color:var(--ink)}
+footer{border-top:1px solid var(--rule);padding:2.4rem 0 3.2rem;color:var(--muted);font-size:.9rem}
+.cols{display:flex;flex-wrap:wrap;gap:2rem;justify-content:space-between}
+footer ul{list-style:none;margin:.4rem 0 0;padding:0}footer li{margin-bottom:.3rem}
+code{font-size:.88em;background:var(--card);border:1px solid var(--rule);border-radius:.3rem;padding:.05em .3em}
 </style>
 </head>
 <body>
-<main>
 
-<header>
-  <h1>FamTM (Family Tree) — Privacy Policy</h1>
-  <p class="sub">Applies to the Family Tree app (FamTM) for Android, version 1.3 and later. Effective 4 November 2026.</p>
-</header>
+<header><div class="wrap">
+  <div class="mark">F</div><b>FamTM</b>
+  <nav><a href="#what">What's inside</a><a href="#ages">Where it lives</a><a href="#privacy">Privacy</a><a href="https://github.com/AnekTheGreat/FamTM/releases/latest">Download</a></nav>
+</div></header>
 
-<div class="lede">
-  <p><strong>The short version: your family tree, the notes you write about people, and their photos stay in the app's own storage on your phone. There is no account, no analytics, no advertising and no server of ours — we cannot see your family, and neither can anyone else through us.</strong></p>
-  <p>Birthday reminders are worked out and shown on the phone. The one thing the app fetches from outside is a newer copy of its own interface, from this project's GitHub repository; that request carries nothing from your tree.</p>
+<div class="wrap hero">
+  <h1>Your family, with every birthday in it.</h1>
+  <p class="lede">FamTM is a family tree for one phone: the people, the dates they were born and died, how old they are today, a portrait if you have one, and the notes worth keeping. No account, nothing uploaded.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://github.com/AnekTheGreat/FamTM/releases/latest">Download FamTM for Android</a>
+    <a class="btn" href="#what">See what's inside</a>
+  </div>
+  <div class="facts">
+    <span class="fact">Version 1.6.12</span><span class="fact">Android 8 and later</span><span class="fact">No account</span>
+    <span class="fact">No ads, no analytics</span><span class="fact">Works offline</span><span class="fact">Your data, in your pocket</span>
+  </div>
+  <div class="tree">
+    <div class="person"><div class="face">A</div><span><b>Age 40</b><small>born 4 Jul 1986</small></span></div>
+    <div class="person"><div class="face">B</div><span><b>Age 39</b><small>born 25 Dec 1986</small></span></div>
+    <div class="person"><div class="face">C</div><span><b>Lived 33 years</b><small>1950 – 1983</small></span></div>
+  </div>
 </div>
 
-<h2>Who we are</h2>
-<p>FamTM — shown on the phone as “Family Tree” — is an independent Android app. In this policy, “we” and “us” mean the app's developer, and “the app” means FamTM. You can reach us at the address in <a href="#contact">Contact</a>.</p>
+<section id="what"><div class="wrap">
+  <h2>One screen per person, and the facts that matter</h2>
+  <p class="sub">Add a person once and the tree does the arithmetic — ages, who is oldest, whose birthday is next — with no spreadsheet behind it.</p>
+  <div class="grid">
+    <div class="card"><h3>People and dates</h3><p>Name, born, died, and the family they belong to. A date can be typed the way you say it — 4 Jul, 7/4/1986 or just 1986.</p></div>
+    <div class="card"><h3>Ages that are right</h3><p>An age is counted from the date, not the year, so someone born in December is 39 until December.</p></div>
+    <div class="card"><h3>Two birthdays</h3><p>One real birthday, and — if a passport carries a different one — a second date kept quietly beside it. Ages still count from the real one.</p></div>
+    <div class="card"><h3>Portraits</h3><p>A photo per person, taken or picked, kept with the entry instead of hunted for later.</p></div>
+    <div class="card"><h3>Birthday reminders</h3><p>Whose birthday is near, on the opening screen, so the day does not pass because nobody was looking.</p></div>
+    <div class="card"><h3>Notes and exports</h3><p>A free-text note for each person, and a backup you can write out as a file whenever you like.</p></div>
+  </div>
+</div></section>
 
-<h2>What the app keeps on your phone</h2>
-<p>The people in your tree, the relationships between them, the notes you write, and the pictures you add are stored as data inside the app's own private storage on your phone. Other apps cannot read it, and it is not uploaded anywhere. The pictures the app keeps are small copies — a photo is scaled down before it is stored — and that copy lives with the entry it belongs to.</p>
-<p>The app does not read your contacts, your calendar, your messages, your files, your location or your accounts, and it has no permission to do any of those things. Everyone in the tree is typed in or imported by you.</p>
+<section id="ages"><div class="wrap">
+  <h2>Where it lives</h2>
+  <p class="sub">Not in an account, not in a database somewhere — in the app's own storage on this phone.</p>
+  <div class="strip">
+    <p><b>Everything is local.</b> People, dates, portraits and notes are written to the app's private storage, which other apps cannot read. There is no sign-in, no sync and no server holding a copy.</p>
+    <p><b>The app updates itself.</b> Its screen is a page the app keeps on this project's GitHub Pages address; it takes a newer copy when it starts, without an installer. That check asks for one file and carries nothing about your family.</p>
+    <p><b>Backups are yours to make.</b> Export whenever you like and keep the file where you keep important things. Uninstalling takes the app's storage with it, so an export is how a tree moves to a new phone.</p>
+  </div>
+</div></section>
 
-<h2>Camera and photos</h2>
-<p>You can take a photo or pick one from the phone to add to a person. When you take one, the camera app is handed a one-off permission to write into the app's own private folder; the app itself declares no camera and no storage permission, and the picture is never added to your phone's gallery.</p>
-<p>Only the most recent picture waiting to be added is kept: that folder is emptied the next time you take or pick a picture, and when the app starts. A picture you pick is read once, scaled down, and stored with the person it belongs to.</p>
-<p>Nothing you photograph or pick is sent anywhere by the app.</p>
+<section id="privacy"><div class="wrap">
+  <h2>Privacy, in one paragraph</h2>
+  <p class="sub">No account, no analytics, no advertising, no third-party tracking — and nothing about your family leaves the phone.</p>
+  <div class="strip">
+    <p>The camera is used only when you take a portrait, and the picture is saved with that person. Reminders are worked out on the phone. The only outside request is the check for a newer copy of the app's own screen, which carries no names, dates or photographs.</p>
+    <p>The whole statement, in the same plain words, is in the <a href="privacy.html">privacy policy</a>.</p>
+  </div>
+</div></section>
 
-<h2>Birthday reminders</h2>
-<p>If you turn reminders on, the app keeps the day and month of each living person's birthday so it can show you a reminder on the day. That check runs on your phone using Android's own background-work scheduler, and the reminder is a notification raised by your phone — the birthday itself is not sent anywhere. On Android 13 and later you are asked for notification permission only when you switch reminders on; if you decline, the rest of the app works unchanged.</p>
+<footer><div class="wrap cols">
+  <div><b>FamTM</b><ul>
+    <li>Package <code>com.FamTM.app</code></li>
+    <li><a href="https://github.com/AnekTheGreat/FamTM/releases/latest">Releases</a></li>
+    <li><a href="privacy.html">Privacy policy</a></li>
+  </ul></div>
+  <div><b>From the same hand</b><ul>
+    <li><a href="https://anekthegreat.github.io/Compass-EDC/site/">MeasureT</a> — compass and rangefinder</li>
+    <li><a href="https://anekthegreat.github.io/Journal/">UJournal</a> — the daily journal</li>
+    <li><a href="https://anekthegreat.github.io/UNote/privacy.html">UNote</a> — the notebook</li>
+  </ul></div>
+</div></footer>
 
-<h2>Exports and backups you make</h2>
-<p>The app can write a PDF or a JSON backup. When you choose that, Android's own file dialog asks you where to put it and you pick the folder, so the copy goes exactly where you send it. That export is the one way your data leaves the app's storage — and it happens only because you asked for it.</p>
-
-<h2>What leaves your phone</h2>
-<h3>Looking for a newer version of the interface</h3>
-<p>On launch, and when you tap the ⟳ button, the app asks this project's GitHub repository for a newer copy of its own interface page. Like any web request, that one carries your IP address and standard request headers, which GitHub receives and handles under <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>. It carries no identifier for you or your phone, and nothing from your family tree — no names, notes, photos or birthdays.</p>
-<p>If a newer page is found it is saved in the app's private storage and used the next time the app opens, so the interface can be corrected without waiting for a store update. An app update you install always wins over that downloaded copy, and if a downloaded page fails to load the app falls back to the interface built into the installed version.</p>
-<p>There is no update check on any other schedule, and the app opens no other connection.</p>
-
-<h2>What we never do</h2>
-<ul>
-  <li>We do not collect, transmit or store your family tree, photos or notes on any server. There is no server of ours.</li>
-  <li>We do not use analytics, crash reporting, advertising or attribution software.</li>
-  <li>We do not sell, rent or share data with anyone, because we do not have it.</li>
-  <li>We do not require a name, email address, phone number or account of any kind.</li>
-  <li>We do not track you across other apps or websites.</li>
-  <li>We do not use your tree or photos to train anything, and no automated system reads them.</li>
-</ul>
-
-<h2>Keeping and deleting your data</h2>
-<p>Everything the app stores lives on your phone, in its private storage.</p>
-<ul>
-  <li>To remove a person, a note or a photo, delete it in the app.</li>
-  <li>To remove everything at once, uninstall the app. Android deletes its private storage, including the tree, the photos and any downloaded interface copy.</li>
-  <li>To stop birthday reminders, switch them off in the app, and revoke notification permission in Android Settings if you want no notifications from the app at all.</li>
-</ul>
-<p>Because we never receive your data, there is nothing for us to delete on your behalf and no request to send us.</p>
-
-<h2>Backups</h2>
-<p>FamTM allows Android's own app-backup feature. If backup is enabled on your device, Android may include the app's stored data — your tree, notes and the small photo copies — in your device backup or your Google account's backup. That copy is controlled by your Google settings and by Google's privacy policy, not by us. You can turn backup off in Android Settings, and uninstalling the app removes its data from the device.</p>
-
-<h2>Children</h2>
-<p>FamTM is a family-tree app for general use and is not directed at children. It collects no personal data from anyone, of any age. It does store the names and birthdays you enter about other people, including children in your family, so treat that as you would any private record on your phone.</p>
-
-<h2>Changes to this policy</h2>
-<p>If a future version of the app changes what it does with data, this page will be updated before that version is published, and the effective date above will change. The current version of this policy always lives at this address.</p>
-
-<h2 id="contact">Contact</h2>
-<p>Questions about this policy or about what the app does can go to <a href="mailto:sidecutsupport@gmail.com">sidecutsupport@gmail.com</a>, or to the issue tracker at <a href="https://github.com/AnekTheGreat/FamTM/issues">github.com/AnekTheGreat/FamTM</a>.</p>
-
-<footer>
-  <p>FamTM — package <code>com.FamTM.app</code>, shown as “Family Tree”. This policy covers the Android app wherever you installed it from.</p>
-</footer>
-
-</main>
 </body>
 </html>
