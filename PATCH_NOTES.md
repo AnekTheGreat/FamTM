@@ -11,6 +11,48 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-20 — v1.6.14: each family's line is drawn on a lane of its own, so two families are never joined by one line
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.14** now.
+
+### Fixed
+- **Two families' lines were drawn as one.** Every child used to be its own path whose sideways stretch
+  sat on the midpoint of the gap between two rows, so **every family on a row put its line on exactly
+  the same y**. Two families that merely stood next to each other had their lines drawn on top of each
+  other, and the one continuous stretch read as though everyone on it belonged to everyone else.
+- **A line ran along the top edges of boxes.** Where a bus landed a pixel or two under a row, it drew
+  along those boxes' top border, in the same colour as the border, so an unrelated box looked joined to
+  it. Each bus now keeps a clear margin from both rows.
+
+### Changed
+- **A family is one line.** A trunk down from the parent's own card, a bus that spans only that
+  family's own children, and a drop into each child's own card — drawn as one path per family.
+- **Each family's bus has a lane of its own** in the gap above its children, placed with the widest
+  family nearest its parents so a bus always sits above the drops of the families standing inside it. A
+  lane is reused only by two families whose buses can never meet sideways, so unrelated lines are never
+  collinear.
+- **Where a line still has to pass another,** the line that passes is broken for a few pixels around it,
+  so the two are visibly not touching instead of crossing into a shape that reads as a junction. A
+  family's own bus is never broken.
+- **The lines have their own colour,** a shade stronger than the boxes' border, so a line that runs
+  near a box no longer looks like that box's edge, in light and dark mode.
+
+### Unchanged
+- **Nothing about the layout, the boxes, the photos or the stored family changed**: same columns, same
+  rows, same canvas, same `people` shape. Only where a line runs.
+
+### Verified
+Measured on a synthetic family shaped like the screenshot (84 people, 60 boxes, three root couples of
+five children each, every child married with two grandchildren, in-laws recorded for two of them), in a
+real browser at 390×844 and at 1600×1200:
+- **24 families, 24 bus segments** — **0 horizontal segments on the same y overlapping**, **0 buses
+  within 2.5px of a box edge they cross over**, **0 line segments through a box**, and **0 verticals
+  passing through another line** (6 crossings, each one broken around the line it passes).
+- **36 drops, every one ending on a child box's top edge and starting on its own family's bus** — 0
+  unmatched; a name still opens its person, Everyone still lists all 60 boxes, and Map returns.
+- **Not verified here:** the reported 146-person family itself — the shape above is a stand-in built from
+  the screenshot, and the numbers are measured on it, not on your tree.
+
 ## 2026-11-20 — v1.6.13: a photo is cropped and zoomed before it becomes the person's picture
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.13** now.
