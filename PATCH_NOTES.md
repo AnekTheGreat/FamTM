@@ -11,6 +11,42 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-20 — v1.6.13: a photo is cropped and zoomed before it becomes the person's picture
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.13** now.
+
+### Added
+- **A picture is cropped before it is kept.** Every picture used to be shrunk whole into a 240px
+  square, so a photo of four people — or a snapshot taken across a room — became a tiny circle with
+  everybody in it. The picked picture now opens in a square, and what is inside that square is what
+  the person gets.
+- **Zoom and move it there.** Drag the picture to move it, pinch to zoom in and out; **−** and **+**
+  and the slider do the same without a pinch, and the wheel zooms on a desktop browser. Zoom runs from
+  the whole picture to 4×, and the picture always covers the square, so no bare edge can be saved.
+- **The circle is what the card will show.** The square is masked to the round hole a person's picture
+  is drawn through (card, people list, tree, the person's page), so the face is placed where it will
+  land before it is saved.
+- **Use photo / Cancel.** Cancel — or the phone's back — leaves the person exactly as they were; nothing
+  is written. Use photo cuts the square out and writes it.
+
+### Unchanged
+- **What is stored is the same photo.** The picture is still a 240×240 JPEG at the same quality in the
+  same `photo` field, so a backup is byte-for-byte the same shape and an older version still reads it.
+  A photo already saved is never re-encoded or touched, and nothing is written twice.
+- **Every door has the crop.** Photos, Gallery, Files, the camera, **Add photo** / **Change photo** in
+  the Add/Edit form and on a person's own page all go through it, and a picture the app cannot decode
+  still says so in the same words.
+
+### Verified
+- **In a real browser** (Chromium, the page served over http): a 600×400 picture in three colour bands
+  opened at 450×300 covering a 300×300 square, and **Use photo** produced a 240×240 JPEG of the centre
+  band only (left/centre/right samples red/green/blue). Zoomed to 4× all three samples are the centre
+  band; dragging right at 4× brings the left band back; **+ / −** step 25% and the wheel 12%; the round
+  mask measures 50%; **Cancel** closes the crop with the person's stored photo byte-for-byte unchanged;
+  and from a person's own page **Change photo** saved a 240×240 JPEG and said *Photo updated*.
+- **Not verified here:** a pinch on a real phone — the two-pointer path is the same code the mouse drag
+  exercises, and there is no Android device in this environment.
+
 ## 2026-11-06 — v1.6.8
 
 **My Hub is off the Other apps list.**
