@@ -11,6 +11,48 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-25 — v1.6.15: a brother or sister with no parent recorded stands beside the family, joined by a line
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.15** now.
+
+### Fixed
+- **A brother or sister with no parent written down was pushed to the far side of the block.** With no
+  parent's box to hang under, the page laid them out as a family of its own, at the end of the family
+  block they belonged to — on a phone that is off the screen in a large tree, and it reads as though
+  they were never added.
+- **Nothing was drawn between them and their own brother or sister.** The link was stored and shown on
+  the person's page under Siblings, but the tree drew no line at all for it, so two boxes standing
+  side by side looked like two families that happened to be next to one another.
+
+### Changed
+- A brother or sister with no parent recorded is now placed **right beside the box that holds the
+  brother or sister they are linked to**.
+- They are joined by **a line of their own**: one short bus above their row with a drop onto each of
+  them — the shape every family in the tree already has, but with no trunk, since there is no parent's
+  box to come down from. It takes its own lane, so it never merges with another family's line, and a
+  line passing it is broken as before.
+- Nothing else moves, no other line is redrawn, and nothing new is stored: it is the same
+  brother-and-sister link (`sibs`), drawn so it can be seen. A pair who already share a recorded parent
+  are left exactly as they were, joined by their parent's own line.
+
+### Verified
+- Reproduced the reported shape in the page itself (Parmjit Singh & Gurjit Kaur, their children, and
+  Amarbir Singh as Gurjit's brother with his own two children, nobody's parents recorded): before, the
+  brother landed at x=398 of a 674-wide canvas with **no line** joining him to his sister; after, he sits
+  beside her box and one line joins the two.
+- Run on three families — the reported 12, three brothers and sisters with no parent at all on the top
+  row, and a 90-box tree (6 families plus 8 unparented brother-and-sister pairs): no box overlaps
+  another, no line passes through a box, nobody is drawn twice, and every one of the 36 lines sits on
+  its own lane.
+- A family with no unparented brother or sister is laid out exactly as before (same canvas, same
+  connectors).
+- `node --check` on the page's script; the What's New JSON parses.
+
+### Not verified
+- Not on a real Android device, and not on the reported 151-person tree itself (no backup of it here):
+  it was reproduced in the page with the same shape of family.
+
+
 ## 2026-11-20 — v1.6.14: each family's line is drawn on a lane of its own, so two families are never joined by one line
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.14** now.
