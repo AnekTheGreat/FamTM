@@ -35,6 +35,10 @@ A page change: it arrives over the air, nothing to install. The page carries **v
   untouched.
 - A line that passes another family's line is now **broken for 5px instead of 3px**, so a crossing reads as a
   crossing at the zoom the phone opens with rather than as a join.
+- **The tree opens on its first box, not on the empty top-left corner.** A big family's oldest box is centred
+  over its own children, a long way across the page, so the corner the view opened on was blank and the
+  family sat off to one side — on a phone the first thing the map showed was an empty rectangle with boxes
+  cut off at the edge. A family that fits the panel is still centred as it always was.
 - The lane list itself is built in one place, and the room a gap needs is worked out from that same list, so
   the spacing and the drawing can never disagree.
 
