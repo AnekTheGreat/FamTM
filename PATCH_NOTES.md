@@ -11,6 +11,48 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-26 — v1.6.16: each family's line keeps a lane of its own in the gap, and the rows stand far enough apart for it
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.16** now.
+
+### Fixed
+- **Lines in a crowded row were drawn on top of one another.** Every family worked its own line's height out
+  from its own boxes, so in a gap holding several families the lines landed anywhere between the two rows
+  instead of on a shared set of lanes. Measured on a 146-person family: one gap held **nine families' lines
+  in eight lanes with a minimum spacing of 0.5px**, another seven lines **1.5px** apart. Drawn that close they
+  read as one thick band, and it stopped being possible to tell whose line was whose — which is what a
+  crowded tree looked like.
+- **A crowded gap was not tall enough for the lines that cross it.** Five families over one row had their
+  five lines squeezed into the same 38–58px, whatever the spacing came out as.
+
+### Changed
+- The lines that cross one gap now **share that gap's lanes**: one y is worked out for the gap — from just
+  below the lowest box above to just above the highest box below — and each line takes one of those lanes
+  evenly spread across it. Two lines can no longer be drawn half a pixel apart.
+- **A gap grows to hold the lanes it needs** (a lane every 14px). A crowded part of the tree is a little
+  taller and every line can be followed; an uncrowded one is not changed at all — a gap with a single
+  family's line is drawn exactly where it was, and the boxes, the columns and the stored family are
+  untouched.
+- A line that passes another family's line is now **broken for 5px instead of 3px**, so a crossing reads as a
+  crossing at the zoom the phone opens with rather than as a join.
+- The lane list itself is built in one place, and the room a gap needs is worked out from that same list, so
+  the spacing and the drawing can never disagree.
+
+### Verified
+- On the 146-person generated family (82 boxes, 45 lines, 4 generations, 9 brother-and-sister groups with no
+  parent recorded): the closest two lanes in any gap went from **0.5px to 22px**, and the widest spread in a
+  gap from 7px to 44px. No box overlaps another (0), no line runs through a box (0), nobody is drawn twice
+  (0), no line is clipped at the top (0), and the canvas is unchanged at 3346×1934 because no gap needed
+  growing.
+- The same tree at 1:1: each family's line is a separate stroke a finger can follow, its trunk still leaves
+  its own parent's card, and its drops still land on its own children's cards.
+- `node --check` on the page's script; the What's New JSON parses (51 entries, first 1.6.16).
+
+### Not verified
+- Not on a real Android device, and not on the reported 165-person tree itself (no backup of it here): it was
+  measured on a generated family of the same size and shape.
+
+
 ## 2026-11-25 — v1.6.15: a brother or sister with no parent recorded stands beside the family, joined by a line
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.15** now.
