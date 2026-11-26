@@ -11,6 +11,39 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-26 — v1.6.17: the rows stand further apart and every line keeps its own lane
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.17** now.
+
+### Changed
+- **More space between the rows on a phone: 88px of clear space instead of 58px** between one row of boxes
+  and the next (a row sits 172px below the one above it instead of 142), and **72px instead of 60px** on a
+  tablet-sized screen. A gap between two rows now has room for the lines that cross it and for air around
+  them, which is what the map was missing when every line sat in one band.
+- **Lines keep 20px between them instead of 14px, and 12px clear of the boxes** above and below instead of
+  7px. A gap that is still not tall enough for the lines it carries is made taller, so two lines are never
+  drawn on top of one another whatever the family looks like.
+- **A line that passes another family's line is broken for 7px instead of 5px**, and the lines are drawn a
+  little stronger (1.6px) with rounded ends — a slightly brighter colour in dark mode and a slightly darker
+  one in light mode — so a crossing reads as a crossing when the whole map is on the screen.
+- Nothing else changes: the same boxes, the same families, the same stored data. Where a gap holds a single
+  line it is still drawn on exactly the same y it was.
+
+### Verified
+- A 31-person, 23-box sample family drawn at phone width: rows 172px apart, every line 12px clear of the
+  boxes, **0 boxes overlapping another, 0 lines running through a box**, canvas unchanged in shape
+  (2490×688), and the map still opens on the first person at the same zoom.
+- Two families whose children interleave, checked against the page's own connector function: they take two
+  separate lanes instead of one, 192px apart across a 216px gap — the whole gap less the 12px clearances,
+  with the 20px lane spacing as the floor.
+- `node --check` on the page's script; the What's New JSON parses (52 entries, first 1.6.17).
+
+### Not verified
+- Not on a real Android device, and not on the reported 165-person tree itself (no backup of it here): the
+  spacing was set and checked against a sample family and the earlier measurements of a 146-person family
+  of the same shape.
+
+
 ## 2026-11-26 — v1.6.16: each family's line keeps a lane of its own in the gap, and the rows stand far enough apart for it
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.16** now.
