@@ -11,6 +11,36 @@ fallback you can always **Backup (JSON)** and **Restore from backup** — a back
 in any version re-imports into any other.
 
 
+## 2026-11-27 — v1.6.18: height, eye colour, hair colour and conditions on each person
+
+A page change: it arrives over the air, nothing to install. The page carries **v1.6.18** now.
+
+### Added
+- **A height, an eye colour and a hair colour** on the person form, on the same screen as the dates (the
+  empty second column beside *Second birthday* now holds the height, and a row below holds eyes and hair).
+- **Conditions**, a free-text box for conditions, allergies or medication, above Notes.
+- The person's page shows the three as one line under their dates (**Height 5 ft 9 in · Eyes brown · Hair
+  black**) and the conditions on their own line below it, so a page opens with the facts rather than only
+  the family links.
+
+### Changed
+- All four are free text — no units, no lists — because no two families write a height or a condition the
+  same way. All four may be left blank.
+- They are stored on the person like the name and dates, so they travel in **Backup (JSON)** and return with
+  **Restore**. A backup written before this release still imports, with the four left blank. A field emptied
+  on the form is removed from the person rather than kept as an empty string.
+- Nothing else changes: the same boxes, the same map, the same lines, the same layout.
+
+### Verified
+- `node --check` on the page's script; the What's New JSON parses (53 entries, first 1.6.18).
+- In a browser at phone width: a person saved with height, eyes, hair and conditions shows all four on their
+  page; the values survive a reload (so they are in the stored record) and appear in Backup (JSON); an empty
+  field is not written; a person with none of the four renders exactly as before.
+
+### Not verified
+- A physical Android device, and restoring a real pre-1.6.18 backup on it (the import path normalises the
+  four as optional strings, and was checked with a synthetic older file).
+
 ## 2026-11-26 — v1.6.17: the rows stand further apart and every line keeps its own lane
 
 A page change: it arrives over the air, nothing to install. The page carries **v1.6.17** now.
